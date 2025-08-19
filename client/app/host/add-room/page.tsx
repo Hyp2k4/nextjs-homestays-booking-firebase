@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { LayoutDashboard, PlusSquare, List, Settings, LogOut } from "lucide-react"
@@ -19,7 +20,9 @@ const defaultAmenities = {
 }
 
 export default function AddRoomPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [navigating, setNavigating] = useState(false)
   const [images, setImages] = useState<{ [key: string]: File | null }>({
     img1: null, img2: null, img3: null, img4: null,
   })
@@ -32,6 +35,37 @@ export default function AddRoomPage() {
     description: "",
     amenities: defaultAmenities,
   })
+
+  // Thêm navigation handler
+  const handleNavigation = useCallback((path: string) => {
+    if (navigating) {
+      console.log("Navigation already in progress, ignoring")
+      return
+    }
+
+    console.log(`Attempting navigation to: ${path}`)
+    setNavigating(true)
+
+    setTimeout(() => {
+      try {
+        console.log(`Router push to: ${path}`)
+        router.push(path)
+      } catch (error) {
+        console.error("Router push failed:", error)
+        console.log(`Fallback to window.location: ${path}`)
+        window.location.href = path
+      } finally {
+        setTimeout(() => setNavigating(false), 2000)
+      }
+    }, 0)
+  }, [router, navigating])
+
+  // Logout handler
+  const handleLogout = useCallback(() => {
+    // Thêm logic logout của bạn ở đây
+    console.log("Logging out...")
+    router.push("/")
+  }, [router])
 
   const handleFileChange = (key: string, file: File | null) => {
     setImages({ ...images, [key]: file })
@@ -54,7 +88,6 @@ export default function AddRoomPage() {
     console.log("Upload thành công, nhận URLs từ Cloudinary:", data.urls)
     return data.urls
   }
-
 
   const resetForm = () => {
     setInputs({ roomType: "", pricePerNight: "", description: "", amenities: defaultAmenities })
@@ -99,22 +132,67 @@ export default function AddRoomPage() {
         </div>
         <div className="flex flex-col flex-grow p-4 overflow-auto">
           <nav className="flex-1 space-y-2">
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              disabled={navigating}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleNavigation("/host/dashboard")
+              }}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Dashboard
             </Button>
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <PlusSquare className="h-4 w-4" /> Add Room
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 bg-gray-100"
+              disabled={navigating}
+            >
+              <PlusSquare className="h-4 w-4" />
+              Add Room
             </Button>
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <List className="h-4 w-4" /> List Rooms
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              disabled={navigating}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleNavigation("/host/list-rooms")
+              }}
+            >
+              <List className="h-4 w-4" />
+              List Rooms
             </Button>
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <Settings className="h-4 w-4" /> Settings
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              disabled={navigating}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleNavigation("/host/settings")
+              }}
+            >
+              <Settings className="h-4 w-4" />
+              Settings
             </Button>
           </nav>
           <div className="mt-auto">
-            <Button variant="ghost" className="w-full justify-start gap-2 text-red-500 hover:text-red-700">
-              <LogOut className="h-4 w-4" /> Logout
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-red-500 hover:text-red-700"
+              disabled={navigating}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleLogout()
+              }}
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
             </Button>
           </div>
         </div>

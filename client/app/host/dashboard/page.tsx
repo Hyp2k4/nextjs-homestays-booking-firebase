@@ -41,15 +41,8 @@ export default function HostDashboardPage() {
 
         try {
             const homestayData = await getHomestay()
-            if (!homestayData || homestayData.length === 0) {
-                toast({
-                    title: "Không tìm thấy homestay",
-                    description: "Bạn cần đăng ký homestay trước",
-                })
-                router.push("/")
-                return
-            }
-            setHomestays(homestayData)
+            // Bỏ phần redirect này - cho phép host vào dashboard ngay cả khi chưa có homestay
+            setHomestays(homestayData || [])
         } catch (error) {
             console.error("Lỗi khi tải dashboard:", error)
             toast({
@@ -65,6 +58,23 @@ export default function HostDashboardPage() {
     useEffect(() => {
         checkAccess()
     }, [checkAccess])
+
+    // Thêm handler cho navigation với fallback
+    const handleNavigation = useCallback((path: string) => {
+        console.log(`Attempting navigation to: ${path}`)
+        
+        // Dùng timeout để tránh router conflicts
+        setTimeout(() => {
+            try {
+                console.log(`Router push to: ${path}`)
+                router.push(path)
+            } catch (error) {
+                console.error("Router push failed:", error)
+                console.log(`Fallback to window.location: ${path}`)
+                window.location.href = path
+            }
+        }, 0)
+    }, [router])
 
     if (loading) {
         return (
@@ -93,7 +103,11 @@ export default function HostDashboardPage() {
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-2"
-                            onClick={() => router.push("/host/dashboard")}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleNavigation("/host/dashboard")
+                            }}
                         >
                             <LayoutDashboard className="h-4 w-4" />
                             Dashboard
@@ -101,7 +115,11 @@ export default function HostDashboardPage() {
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-2"
-                            onClick={() => router.push("/host/add-room")}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleNavigation("/host/add-room")
+                            }}
                         >
                             <PlusSquare className="h-4 w-4" />
                             Add Room
@@ -109,7 +127,11 @@ export default function HostDashboardPage() {
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-2"
-                            onClick={() => router.push("/host/list-rooms")}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleNavigation("/host/list-rooms")
+                            }}
                         >
                             <List className="h-4 w-4" />
                             List Rooms
@@ -117,7 +139,11 @@ export default function HostDashboardPage() {
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-2"
-                            onClick={() => router.push("/host/settings")}
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleNavigation("/host/settings")
+                            }}
                         >
                             <Settings className="h-4 w-4" />
                             Settings

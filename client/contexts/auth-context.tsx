@@ -35,7 +35,7 @@ interface AuthContextType extends AuthState {
   registerHomestay: (homestayData: {
     name: string;
     address: string;
-    contact: string;
+    phone: string;
     city: string;
   }) => Promise<{ success: boolean; error?: string }>
   getHomestay: () => Promise<any>
@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerHomestay = async (homestayData: {
     name: string;
     address: string;
-    contact: string;
+    phone: string;
     city: string;
   }): Promise<{ success: boolean; error?: string }> => {
     if (!user) {

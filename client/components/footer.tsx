@@ -97,7 +97,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center">
-          <p className="text-muted-foreground text-sm">© 2024 VietStay. Tất cả quyền được bảo lưu.</p>
+          <p className="text-muted-foreground text-sm">© 2025 Meap Homestay. Tất cả quyền được bảo lưu.</p>
         </div>
       </div>
     </footer>

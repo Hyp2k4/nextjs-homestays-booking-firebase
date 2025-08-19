@@ -33,7 +33,7 @@ export function HomestayRegistrationModal({ children }: HomestayRegistrationModa
     const [formData, setFormData] = useState({
         name: '',
         address: '',
-        contact: '',
+        phone: '',
         city: ''
     })
     const { registerHomestay } = useAuth()
@@ -46,11 +46,11 @@ export function HomestayRegistrationModal({ children }: HomestayRegistrationModa
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!formData.name || !formData.address || !formData.contact || !formData.city) {
+        if (!formData.name || !formData.address || !formData.phone || !formData.city) {
             toast.error("Vui lòng điền đầy đủ thông tin")
             return
         }
-
+        console.log("Submitting:", formData)
         setLoading(true)
 
         try {
@@ -62,7 +62,7 @@ export function HomestayRegistrationModal({ children }: HomestayRegistrationModa
                 setFormData({
                     name: '',
                     address: '',
-                    contact: '',
+                    phone: '',
                     city: ''
                 })
             } else {
@@ -121,8 +121,8 @@ export function HomestayRegistrationModal({ children }: HomestayRegistrationModa
                     <div className="space-y-2">
                         <label className="block text-sm font-medium">Số điện thoại *</label>
                         <Input
-                            name="contact"
-                            value={formData.contact}
+                            name="phone"
+                            value={formData.phone}
                             onChange={handleInputChange}
                             placeholder="Số điện thoại liên hệ"
                             type="tel"
