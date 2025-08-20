@@ -6,8 +6,16 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN").format(amount)
 }
 
+export async function GET() {
+  return NextResponse.json({ message: "This is the bookings API endpoint." })
+}
+
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.text()
+    if (!body) {
+      return NextResponse.json({ success: false, message: "Request body is empty" }, { status: 400 })
+    }
     const {
       roomId,
       checkInDate: checkIn,
@@ -17,7 +25,7 @@ export async function POST(req: NextRequest) {
       user,
       roomData,
       status,
-    } = await req.json()
+    } = JSON.parse(body)
 
     const checkInDate = new Date(checkIn)
     const checkOutDate = new Date(checkOut)
