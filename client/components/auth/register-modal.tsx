@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useAuth } from "@/contexts/auth-context"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, Mail } from "lucide-react"
+
 
 interface RegisterModalProps {
   isOpen: boolean
@@ -70,6 +71,8 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
       return
     }
 
+    
+
     const result = await register({ name, email, password, phone, role })
     if (result.success) {
       if (result.needsVerification) {
@@ -96,6 +99,8 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
       setError(result.error || "Không thể đăng nhập với Google")
     }
   }
+
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -200,6 +205,19 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }: RegisterModa
 
           {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
           {successMessage && <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md">{successMessage}</div>}
+          
+          {/* Email verification notice */}
+          <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-md border border-blue-200">
+            <div className="flex items-start gap-2">
+              <Mail className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Xác thực email</p>
+                <p className="text-blue-700 mt-1">
+                  Sau khi đăng ký, bạn sẽ nhận được email xác thực. Vui lòng kiểm tra hộp thư và xác thực email để có thể đăng nhập.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (

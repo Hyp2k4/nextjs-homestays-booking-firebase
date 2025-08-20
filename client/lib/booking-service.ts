@@ -22,6 +22,37 @@ export class BookingService {
     }
   }
 
+  static async getRoomBookings(roomId: string) {
+    try {
+      const q = query(collection(db, this.collectionName), where("roomId", "==", roomId))
+      const snap = await getDocs(q)
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Booking[]
+    } catch (error) {
+      console.error("Error getting room bookings:", error)
+      return []
+    }
+  }
+
+  static async isRoomAvailable(roomId: string, checkIn: string, checkOut: string): Promise<boolean> {
+    try {
+      const bookings = await this.getRoomBookings(roomId)
+      const ci = new Date(checkIn).getTime()
+      const co = new Date(checkOut).getTime()
+      if (!ci || !co || co <= ci) return false
+
+      // overlap if: ci < existing.checkOut && co > existing.checkIn
+      const overlapping = bookings.filter((b) => b.status !== "cancelled").some((b) => {
+        const ei = new Date(b.checkInDate).getTime()
+        const eo = new Date(b.checkOutDate).getTime()
+        return ci < eo && co > ei
+      })
+      return !overlapping
+    } catch (error) {
+      console.error("Error checking availability:", error)
+      return false
+    }
+  }
+
   static async createBooking(
     request: BookingRequest,
     userId: string,
@@ -43,7 +74,7 @@ export class BookingService {
       const totalNights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
       const subtotal = property.pricing.basePrice * totalNights
       const serviceFee = 50000
-      const total = subtotal + serviceFee
+      const totalPrice = subtotal + serviceFee
 
       // Create booking data
       const bookingData = {
@@ -53,14 +84,14 @@ export class BookingService {
         userId,
         userName,
         userEmail,
-        checkIn: request.checkIn,
-        checkOut: request.checkOut,
+        checkInDate: request.checkIn,
+        checkOutDate: request.checkOut,
         guests: request.guests,
         totalNights,
         pricePerNight: property.pricing.basePrice,
         subtotal,
         serviceFee,
-        total,
+        totalPrice,
         status: "pending",
         paymentStatus: "pending",
         paymentMethod: request.paymentMethod,
@@ -122,11 +153,23 @@ export class BookingService {
     try {
       const q = query(collection(db, this.collectionName), where("userId", "==", userId), orderBy("createdAt", "desc"))
       const querySnapshot = await getDocs(q)
-      const bookings: Booking[] = []
-
-      querySnapshot.forEach((doc) => {
-        bookings.push({ id: doc.id, ...doc.data() } as Booking)
-      })
+      
+      const bookings = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
+        const bookingData = docSnapshot.data()
+        let roomData = {}
+        if (bookingData.roomId) {
+          const roomDoc = await getDoc(doc(db, "rooms", bookingData.roomId))
+          if (roomDoc.exists()) {
+            const room = roomDoc.data()
+            roomData = {
+              propertyImage: room.images?.[0] || null,
+              roomName: room.roomName,
+              propertyTitle: room.homestayName,
+            }
+          }
+        }
+        return { id: docSnapshot.id, ...bookingData, ...roomData } as Booking
+      }))
 
       return bookings
     } catch (error) {

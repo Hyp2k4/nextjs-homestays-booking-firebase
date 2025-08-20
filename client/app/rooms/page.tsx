@@ -1,373 +1,209 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
-import { SearchSection } from "@/components/search-section"
-import { PropertyCard } from "@/components/property-card"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Slider } from "@/components/ui/slider"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
+import { PropertyService } from "@/lib/property-service"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { mockProperties, propertyAmenities } from "@/data/mock-properties"
-import type { Property, SearchFilters } from "@/types/property"
-import { Filter, Grid, List } from "lucide-react"
+import { HeroSlider } from "@/components/hero-slider"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Heart, MapPin, Home, CheckCircle, XCircle } from "lucide-react"
 
-function SearchPageContent() {
-  const searchParams = useSearchParams()
-  const [properties, setProperties] = useState<Property[]>(mockProperties)
-  const [filters, setFilters] = useState<SearchFilters>({})
-  const [showFilters, setShowFilters] = useState(false)
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [sortBy, setSortBy] = useState<"price" | "rating" | "newest">("rating")
+export default function RoomsPage() {
+  const { user, toggleWishlist } = useAuth()
+  const [rooms, setRooms] = useState<any[]>([])
+  const [homestayById, setHomestayById] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(true)
 
-  // Initialize filters from URL params
+  // Filters
+  const [search, setSearch] = useState("")
+  const [roomType, setRoomType] = useState<string>("all")
+  const [homestayFilter, setHomestayFilter] = useState<string>("all")
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000000])
+
   useEffect(() => {
-    const initialFilters: SearchFilters = {
-      location: searchParams.get("location") || undefined,
-      checkIn: searchParams.get("checkIn") || undefined,
-      checkOut: searchParams.get("checkOut") || undefined,
-      guests: searchParams.get("guests") ? Number.parseInt(searchParams.get("guests")!) : undefined,
-      priceRange: { min: 0, max: 3000000 },
-      propertyTypes: [],
-      amenities: [],
-      rating: 0,
+    const run = async () => {
+      setLoading(true)
+      const { rooms: allRooms, homestayById: map } = await PropertyService.getAllPublicRooms()
+      setRooms(allRooms)
+      setHomestayById(map)
+      setLoading(false)
     }
-    setFilters(initialFilters)
-  }, [searchParams])
+    run()
+  }, [])
 
-  // Filter and sort properties
-  useEffect(() => {
-    let filtered = [...mockProperties]
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(
+      price || 0
+    )
 
-    // Apply filters
-    if (filters.location) {
-      filtered = filtered.filter(
-        (p) =>
-          p.location.city.toLowerCase().includes(filters.location!.toLowerCase()) ||
-          p.location.district.toLowerCase().includes(filters.location!.toLowerCase()),
-      )
-    }
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((r) => {
+      const matchesSearch = [r.roomName, r.roomCode, r.roomType, r.description]
+        .filter(Boolean)
+        .some((v: string) => v.toLowerCase().includes(search.toLowerCase()))
+      const matchesType = roomType === "all" || r.roomType === roomType
+      const matchesHomestay = homestayFilter === "all" || r.homestayId === homestayFilter
+      const price = r.pricePerNight || 0
+      const matchesPrice = price >= priceRange[0] && price <= priceRange[1]
+      return matchesSearch && matchesType && matchesHomestay && matchesPrice
+    })
+  }, [rooms, search, roomType, homestayFilter, priceRange])
 
-    if (filters.guests) {
-      filtered = filtered.filter((p) => p.capacity.guests >= filters.guests!)
-    }
-
-    if (filters.priceRange) {
-      filtered = filtered.filter(
-        (p) => p.price.perNight >= filters.priceRange!.min && p.price.perNight <= filters.priceRange!.max,
-      )
-    }
-
-    if (filters.propertyTypes && filters.propertyTypes.length > 0) {
-      filtered = filtered.filter((p) => filters.propertyTypes!.includes(p.propertyType))
-    }
-
-    if (filters.amenities && filters.amenities.length > 0) {
-      filtered = filtered.filter((p) => filters.amenities!.some((amenity) => p.amenities.includes(amenity)))
-    }
-
-    if (filters.rating && filters.rating > 0) {
-      filtered = filtered.filter((p) => p.rating.average >= filters.rating!)
-    }
-
-    // Apply sorting
-    switch (sortBy) {
-      case "price":
-        filtered.sort((a, b) => a.price.perNight - b.price.perNight)
-        break
-      case "rating":
-        filtered.sort((a, b) => b.rating.average - a.rating.average)
-        break
-      case "newest":
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        break
-    }
-
-    setProperties(filtered)
-  }, [filters, sortBy])
-
-  const handleSearch = (newFilters: SearchFilters) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }))
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(price)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary" />
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-
+      <HeroSlider />
       <main className="container mx-auto px-4 py-8">
-        {/* Search Section */}
-        <div className="mb-8">
-          <SearchSection onSearch={handleSearch} initialFilters={filters} />
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Tất cả phòng</h1>
+          <p className="text-muted-foreground">Khám phá các phòng từ nhiều homestay</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className={`lg:w-80 ${showFilters ? "block" : "hidden lg:block"}`}>
-            <Card className="sticky top-24">
-              <CardContent className="p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-serif font-semibold text-lg">Bộ lọc</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setFilters({ priceRange: { min: 0, max: 3000000 }, propertyTypes: [], amenities: [], rating: 0 })
-                    }
-                  >
-                    Xóa tất cả
-                  </Button>
-                </div>
-
-                {/* Price Range */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Khoảng giá (VND/đêm)</h4>
-                  <Slider
-                    value={[filters.priceRange?.min || 0, filters.priceRange?.max || 3000000]}
-                    onValueChange={([min, max]) => setFilters((prev) => ({ ...prev, priceRange: { min, max } }))}
-                    max={3000000}
-                    min={0}
-                    step={100000}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{formatPrice(filters.priceRange?.min || 0)}</span>
-                    <span>{formatPrice(filters.priceRange?.max || 3000000)}</span>
-                  </div>
-                </div>
-
-                {/* Property Types */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Loại hình</h4>
-                  <div className="space-y-2">
-                    {["house", "apartment", "villa", "cabin"].map((type) => (
-                      <div key={type} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={type}
-                          checked={filters.propertyTypes?.includes(type) || false}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setFilters((prev) => ({
-                                ...prev,
-                                propertyTypes: [...(prev.propertyTypes || []), type],
-                              }))
-                            } else {
-                              setFilters((prev) => ({
-                                ...prev,
-                                propertyTypes: prev.propertyTypes?.filter((t) => t !== type) || [],
-                              }))
-                            }
-                          }}
-                        />
-                        <label htmlFor={type} className="text-sm">
-                          {type === "house"
-                            ? "Nhà"
-                            : type === "apartment"
-                              ? "Căn hộ"
-                              : type === "villa"
-                                ? "Villa"
-                                : "Cabin"}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rating */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Đánh giá tối thiểu</h4>
-                  <div className="space-y-2">
-                    {[4.5, 4.0, 3.5, 3.0].map((rating) => (
-                      <div key={rating} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`rating-${rating}`}
-                          checked={filters.rating === rating}
-                          onCheckedChange={(checked) => {
-                            setFilters((prev) => ({ ...prev, rating: checked ? rating : 0 }))
-                          }}
-                        />
-                        <label htmlFor={`rating-${rating}`} className="text-sm">
-                          {rating}+ sao
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Tiện nghi</h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {propertyAmenities.slice(0, 8).map((amenity) => (
-                      <div key={amenity} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={amenity}
-                          checked={filters.amenities?.includes(amenity) || false}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setFilters((prev) => ({
-                                ...prev,
-                                amenities: [...(prev.amenities || []), amenity],
-                              }))
-                            } else {
-                              setFilters((prev) => ({
-                                ...prev,
-                                amenities: prev.amenities?.filter((a) => a !== amenity) || [],
-                              }))
-                            }
-                          }}
-                        />
-                        <label htmlFor={amenity} className="text-sm">
-                          {amenity}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-white p-4 rounded-lg border">
+          <div className="col-span-1 md:col-span-2">
+            <Input
+              placeholder="Tìm theo tên phòng, mã phòng, loại phòng, mô tả..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-
-          {/* Results */}
-          <div className="flex-1">
-            {/* Results Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <h2 className="font-serif font-semibold text-xl">{properties.length} homestay được tìm thấy</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="lg:hidden bg-transparent"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Bộ lọc
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "price" | "rating" | "newest")}
-                  className="px-3 py-2 border border-border rounded-md bg-background text-sm"
-                >
-                  <option value="rating">Đánh giá cao nhất</option>
-                  <option value="price">Giá thấp nhất</option>
-                  <option value="newest">Mới nhất</option>
-                </select>
-
-                <div className="flex border border-border rounded-md">
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+          <Select value={roomType} onValueChange={(v) => setRoomType(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Loại phòng" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả loại phòng</SelectItem>
+              <SelectItem value="Single Bed">Single Bed</SelectItem>
+              <SelectItem value="Double Bed">Double Bed</SelectItem>
+              <SelectItem value="Deluxe Room">Deluxe Room</SelectItem>
+              <SelectItem value="Family Suite">Family Suite</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={homestayFilter} onValueChange={(v) => setHomestayFilter(v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Homestay" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả Homestay</SelectItem>
+              {Object.values(homestayById).map((h) => (
+                <SelectItem key={h.id} value={h.id}>
+                  {h.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">Khoảng giá (VND/đêm)</div>
+            <Slider
+              value={[priceRange[0], priceRange[1]]}
+              onValueChange={([min, max]) => setPriceRange([min, max])}
+              min={0}
+              max={10000000}
+              step={50000}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{formatPrice(priceRange[0])}</span>
+              <span>{formatPrice(priceRange[1])}</span>
             </div>
-
-            {/* Active Filters */}
-            {(filters.location || filters.propertyTypes?.length || filters.amenities?.length || filters.rating) && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {filters.location && (
-                  <Badge variant="secondary" className="gap-1">
-                    {filters.location}
-                    <button onClick={() => setFilters((prev) => ({ ...prev, location: undefined }))}>×</button>
-                  </Badge>
-                )}
-                {filters.propertyTypes?.map((type) => (
-                  <Badge key={type} variant="secondary" className="gap-1">
-                    {type}
-                    <button
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          propertyTypes: prev.propertyTypes?.filter((t) => t !== type),
-                        }))
-                      }
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-                {filters.amenities?.slice(0, 3).map((amenity) => (
-                  <Badge key={amenity} variant="secondary" className="gap-1">
-                    {amenity}
-                    <button
-                      onClick={() =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          amenities: prev.amenities?.filter((a) => a !== amenity),
-                        }))
-                      }
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ))}
-                {filters.rating && filters.rating > 0 && (
-                  <Badge variant="secondary" className="gap-1">
-                    {filters.rating}+ sao
-                    <button onClick={() => setFilters((prev) => ({ ...prev, rating: 0 }))}>×</button>
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Properties Grid */}
-            {properties.length > 0 ? (
-              <div
-                className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-6"}
-              >
-                {properties.map((property) => (
-                  <PropertyCard key={property.id} property={property} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <h3 className="font-serif font-semibold text-xl mb-2">Không tìm thấy homestay nào</h3>
-                <p className="text-muted-foreground mb-4">Thử thay đổi bộ lọc hoặc tìm kiếm khác</p>
-                <Button
-                  onClick={() =>
-                    setFilters({ priceRange: { min: 0, max: 3000000 }, propertyTypes: [], amenities: [], rating: 0 })
-                  }
-                >
-                  Xóa tất cả bộ lọc
-                </Button>
-              </div>
-            )}
           </div>
         </div>
-      </main>
 
+        {/* Results */}
+        {filteredRooms.length === 0 ? (
+          <div className="text-center py-12 border rounded-lg bg-white">
+            Không có phòng nào phù hợp.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRooms.map((room) => {
+              const homestay = homestayById[room.homestayId]
+              return (
+                <Card key={room.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <Image
+                      src={room.images?.[0] || "/placeholder.jpg"}
+                      alt={room.roomName || room.roomCode || room.roomType || "Room"}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <Badge variant="secondary">{room.roomType || "Phòng"}</Badge>
+                    </div>
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="rounded-full h-9 w-9"
+                        onClick={async (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          if (!toggleWishlist || !homestay) return
+                          await toggleWishlist(homestay.id)
+                        }}
+                      >
+                        <Heart
+                          className={`h-5 w-5 ${user?.wishlist?.includes(homestay?.id) ? "fill-red-500 text-red-500" : ""}`}
+                        />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Home className="h-3 w-3" />
+                        <span>{homestay?.name || "Không rõ Homestay"}</span>
+                      </div>
+                      <Badge variant={room.isActive !== false ? "default" : "secondary"}>
+                        {room.isActive !== false ? "Đang hoạt động" : "Không hoạt động"}
+                      </Badge>
+                    </div>
+
+                    <h3 className="font-serif font-semibold text-lg text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                      {room.roomName || room.roomCode || "Phòng"}
+                    </h3>
+
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-muted-foreground">Giá</div>
+                      <div className="text-right">
+                        <div className="font-bold text-lg text-foreground">{formatPrice(room.pricePerNight || 0)}</div>
+                        <div className="text-xs text-muted-foreground">/ đêm</div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Link href={`/room/${room.id}`} className="flex-1">
+                        <Button className="w-full" variant="outline">View details</Button>
+                      </Link>
+                      <Link href={`/bookings?roomId=${room.id}`} className="flex-1">
+                        <Button className="w-full">Book now</Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
+      </main>
       <Footer />
     </div>
-  )
-}
-
-export default function SearchPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <SearchPageContent />
-    </Suspense>
   )
 }

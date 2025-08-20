@@ -1,4 +1,5 @@
 "use client"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import { User, Settings, LogOut, Home, Calendar, BarChart3, Shield } from "lucid
 
 export function UserMenu() {
   const { user, logout } = useAuth()
+  const router = useRouter()
 
   if (!user) return null
 
@@ -40,9 +42,13 @@ export function UserMenu() {
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => (window.location.href = "/profile")}>
+        <DropdownMenuItem onClick={() => router.push("/profile")}>
           <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
+          <span>Thông tin tài khoản</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/bookings")}>
+          <User className="mr-2 h-4 w-4" />
+          <span>Bookings</span>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />

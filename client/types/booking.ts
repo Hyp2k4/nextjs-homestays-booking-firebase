@@ -1,22 +1,25 @@
 export interface Booking {
   id: string
-  propertyId: string
+  propertyId?: string
+  roomId?: string
   propertyTitle: string
   propertyImage: string
+  roomName?: string
+  homestayName?: string
   userId: string
   userName: string
   userEmail: string
-  checkIn: string
-  checkOut: string
+  checkInDate: any
+  checkOutDate: any
   guests: number
   totalNights: number
   pricePerNight: number
   subtotal: number
   serviceFee: number
-  total: number
-  status: "pending" | "confirmed" | "cancelled" | "completed"
+  totalPrice: number
+  status: "pending" | "confirmed" | "cancelled" | "completed" | "unpaid" | "paid"
   paymentStatus: "pending" | "paid" | "failed" | "refunded"
-  paymentMethod: "vnpay" | "momo" | "bank_transfer"
+  paymentMethod: "vnpay" | "momo" | "bank_transfer" | "pay_at_homestay"
   guestInfo: {
     firstName: string
     lastName: string
@@ -25,8 +28,8 @@ export interface Booking {
     specialRequests?: string
   }
   hostId: string
-  createdAt: string
-  updatedAt: string
+  createdAt: any
+  updatedAt: any
   cancellationReason?: string
   vnpayTransactionId?: string
 }

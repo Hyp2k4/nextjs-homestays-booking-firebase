@@ -11,6 +11,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendEmailVerification,
+  sendPasswordResetEmail,
+  reload,
 } from "firebase/auth"
 import {
   doc,
@@ -25,6 +27,7 @@ import { auth, db } from "@/lib/firebase/config"
 import type { User, AuthState, LoginCredentials, RegisterCredentials } from "@/types/auth"
 
 interface AuthContextType extends AuthState {
+  isLoading: boolean
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>
   register: (
     credentials: RegisterCredentials,
@@ -32,11 +35,17 @@ interface AuthContextType extends AuthState {
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
   logout: () => void
   updateProfile: (updates: Partial<User>) => Promise<void>
+  updateUserProfile: (updates: Partial<User>) => Promise<{ success: boolean; error?: string }>
+  resendEmailVerification: () => Promise<{ success: boolean; error?: string }>
+  checkEmailVerification: () => Promise<{ success: boolean; error?: string }>
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
+  toggleWishlist?: (propertyId: string) => Promise<{ success: boolean; inWishlist: boolean; error?: string }>
   registerHomestay: (homestayData: {
-    name: string;
-    address: string;
-    phone: string;
-    city: string;
+    name: string
+    address: string
+    phone: string
+    city: string
+    status: string
   }) => Promise<{ success: boolean; error?: string }>
   getHomestay: () => Promise<any>
 }
@@ -45,7 +54,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -61,13 +70,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: userData.phone || "",
             createdAt: userData.createdAt || new Date().toISOString(),
             emailVerified: firebaseUser.emailVerified,
-            homestayId: userData.homestayId || undefined
+            homestayId: userData.homestayId || undefined,
+            wishlist: userData.wishlist || []
           })
         }
       } else {
         setUser(null)
       }
-      setIsLoading(false)
+      setLoading(false)
     })
 
     return () => unsubscribe()
@@ -75,12 +85,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
     try {
-      setIsLoading(true)
+      setLoading(true)
       const userCredential = await signInWithEmailAndPassword(auth, credentials.email, credentials.password)
 
+      // Kiểm tra xác thực email
       if (!userCredential.user.emailVerified) {
         await signOut(auth)
-        return { success: false, error: "Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn." }
+        return { 
+          success: false, 
+          error: "Vui lòng xác thực email trước khi đăng nhập. Kiểm tra hộp thư của bạn hoặc yêu cầu gửi lại email xác thực." 
+        }
       }
 
       return { success: true }
@@ -99,17 +113,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         case "auth/user-disabled":
           errorMessage = "Tài khoản đã bị vô hiệu hóa"
           break
+        case "auth/email-not-verified":
+          errorMessage = "Email chưa được xác thực. Vui lòng kiểm tra hộp thư và xác thực email."
+          break
       }
 
       return { success: false, error: errorMessage }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   const signInWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      setIsLoading(true)
+      setLoading(true)
       console.log("[v0] Starting Google sign-in process")
 
       const provider = new GoogleAuthProvider()
@@ -182,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: false, error: errorMessage }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -190,13 +207,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     credentials: RegisterCredentials,
   ): Promise<{ success: boolean; error?: string; needsVerification?: boolean }> => {
     try {
-      setIsLoading(true)
+      setLoading(true)
 
       // Create Firebase user
       const userCredential = await createUserWithEmailAndPassword(auth, credentials.email, credentials.password)
       const firebaseUser = userCredential.user
 
-      await sendEmailVerification(firebaseUser)
+      // Gửi email xác thực
+      await sendEmailVerification(firebaseUser, {
+        url: `${window.location.origin}/auth/verify-email`,
+        handleCodeInApp: false,
+      })
 
       // Update Firebase profile
       await updateFirebaseProfile(firebaseUser, {
@@ -207,9 +228,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: credentials.name,
         email: credentials.email,
         phone: credentials.phone,
-        role: credentials.role, // This ensures host role is saved correctly
+        role: credentials.role,
         createdAt: new Date().toISOString(),
-        emailVerified: false, // Track verification status
+        emailVerified: false,
       }
 
       await setDoc(doc(db, "users", firebaseUser.uid), userData)
@@ -234,7 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: false, error: errorMessage }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -265,24 +286,136 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error
     }
   }
+
+  const updateUserProfile = async (updates: Partial<User>): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return { success: false, error: "Bạn cần đăng nhập để cập nhật thông tin" }
+    }
+
+    try {
+      // Update Firestore document
+      await updateDoc(doc(db, "users", user.id), updates)
+
+      // Update Firebase profile if name or avatar changed
+      if (updates.name || updates.avatar) {
+        await updateFirebaseProfile(auth.currentUser!, {
+          displayName: updates.name || user.name,
+          photoURL: updates.avatar || user.avatar || null,
+        })
+      }
+
+      // Update local state
+      setUser(prev => prev ? { ...prev, ...updates } : null)
+
+      return { success: true }
+    } catch (error: any) {
+      console.error("Profile update error:", error)
+      return { success: false, error: error.message || "Có lỗi xảy ra khi cập nhật thông tin" }
+    }
+  }
+
+  const resendEmailVerification = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!auth.currentUser) {
+      return { success: false, error: "Không có người dùng đăng nhập" }
+    }
+
+    try {
+      await sendEmailVerification(auth.currentUser, {
+        url: `${window.location.origin}/auth/verify-email`,
+        handleCodeInApp: false,
+      })
+      return { success: true }
+    } catch (error: any) {
+      console.error("Resend email verification error:", error)
+      return { success: false, error: error.message || "Không thể gửi lại email xác thực" }
+    }
+  }
+
+  const checkEmailVerification = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!auth.currentUser) {
+      return { success: false, error: "Không có người dùng đăng nhập" }
+    }
+
+    try {
+      await reload(auth.currentUser)
+      
+      if (auth.currentUser.emailVerified) {
+        // Update Firestore
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+          emailVerified: true
+        })
+
+        // Update local state
+        setUser(prev => prev ? { ...prev, emailVerified: true } : null)
+
+        return { success: true }
+      } else {
+        return { success: false, error: "Email chưa được xác thực" }
+      }
+    } catch (error: any) {
+      console.error("Check email verification error:", error)
+      return { success: false, error: error.message || "Không thể kiểm tra trạng thái xác thực email" }
+    }
+  }
+
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await sendPasswordResetEmail(auth, email)
+      return { success: true }
+    } catch (error: any) {
+      console.error("Send password reset email error:", error)
+      let errorMessage = "Không thể gửi email đặt lại mật khẩu"
+
+      switch (error.code) {
+        case "auth/user-not-found":
+          errorMessage = "Email không tồn tại trong hệ thống"
+          break
+        case "auth/invalid-email":
+          errorMessage = "Email không hợp lệ"
+          break
+        case "auth/too-many-requests":
+          errorMessage = "Quá nhiều yêu cầu. Vui lòng thử lại sau"
+          break
+      }
+
+      return { success: false, error: errorMessage }
+    }
+  }
+
+  const toggleWishlist = async (propertyId: string): Promise<{ success: boolean; inWishlist: boolean; error?: string }> => {
+    if (!user) return { success: false, inWishlist: false, error: "Bạn cần đăng nhập" }
+    try {
+      const currentWishlist = user.wishlist || []
+      const inWishlist = currentWishlist.includes(propertyId)
+      const nextWishlist = inWishlist
+        ? currentWishlist.filter(id => id !== propertyId)
+        : [...currentWishlist, propertyId]
+
+      await updateDoc(doc(db, "users", user.id), { wishlist: nextWishlist })
+      setUser(prev => prev ? { ...prev, wishlist: nextWishlist } : prev)
+      return { success: true, inWishlist: !inWishlist }
+    } catch (error: any) {
+      return { success: false, inWishlist: !!user.wishlist?.includes(propertyId), error: error.message || "Không thể cập nhật wishlist" }
+    }
+  }
   const registerHomestay = async (homestayData: {
     name: string;
     address: string;
     phone: string;
     city: string;
+    status: string;
   }): Promise<{ success: boolean; error?: string }> => {
     if (!user) {
       return { success: false, error: "Bạn cần đăng nhập để đăng ký homestay" }
     }
 
     try {
-      setIsLoading(true)
+      setLoading(true)
 
       // Tạo homestay mới trong collection 'homestays'
       const homestayRef = await addDoc(collection(db, "homestays"), {
         ...homestayData,
         hostId: user.id,
-        status: "pending",
         isActive: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -309,7 +442,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: error.message || "Có lỗi xảy ra khi đăng ký homestay"
       }
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -327,13 +460,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    isLoading,
+    isLoading: loading,
     isAuthenticated: !!user,
     login,
     register,
     signInWithGoogle,
     logout,
     updateProfile,
+    updateUserProfile,
+    resendEmailVerification,
+    checkEmailVerification,
+    resetPassword,
+    toggleWishlist,
     registerHomestay,
     getHomestay
   }

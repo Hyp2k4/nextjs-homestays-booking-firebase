@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
-import { Montserrat } from "next/font/google"
+import { Montserrat, Playfair_Display } from "next/font/google"
 import { Open_Sans } from "next/font/google"
 import "./globals.css"
+import "leaflet/dist/leaflet.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { ToastProvider } from "@/components/toast-provider"
 
@@ -19,6 +20,13 @@ const openSans = Open_Sans({
   weight: ["400", "500"],
 })
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-playfair",
+  weight: ["400", "700"],
+})
+
 export const metadata: Metadata = {
   title: "Meap Homestay",
   description: "Find and book amazing homestays across Vietnam",
@@ -31,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${openSans.variable} antialiased`}>
+    <html lang="en" className={`${montserrat.variable} ${openSans.variable} ${playfair.variable} antialiased`}>
       <body className="font-sans">
         <AuthProvider>
           <ToastProvider />

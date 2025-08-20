@@ -1,13 +1,17 @@
+export type UserRole = "customer" | "host" | "admin";
+
 export interface User {
   id: string;
   email: string;
   name: string;
   avatar?: string;
-  role: "customer" | "host" | "admin";
+  role: UserRole;
   phone: string;
   createdAt: string;
   emailVerified: boolean;
   homestayId?: string;
+  wishlist?: string[];
+  isActive?: boolean;
 }
 
 export interface AuthState {

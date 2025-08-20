@@ -62,11 +62,17 @@ export function Header() {
               >
                 Rooms
               </Link>
+              <Link
+                href="/homestays"
+                className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                Homestays
+              </Link>
 
               {isAuthenticated && (
                 isHost ? (
                   <Link
-                    href="/host/dashboard"
+                    href="/host"
                     className="text-sm font-medium text-foreground  transition-colors"
                     onClick={() => setShowMobileMenu(false)}
                   >
@@ -151,7 +157,7 @@ export function Header() {
                 {isAuthenticated && (
                   isHost ? (
                     <Link
-                      href="/host/dashboard"
+                      href="/host"
                       className="text-sm font-medium text-foreground hover:text-primary transition-colors"
                       onClick={() => setShowMobileMenu(false)}
                     >

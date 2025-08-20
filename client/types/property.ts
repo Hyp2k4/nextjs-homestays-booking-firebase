@@ -1,31 +1,27 @@
 export interface Property {
   id: string
-  title: string
+  name: string // Changed from title
   description: string
-  location: {
-    city: string
-    district: string
-    address: string
-    coordinates: {
-      lat: number
-      lng: number
-    }
+  city: string // Flattened from location
+  district: string // Flattened from location
+  address: string // Flattened from location
+  coordinates?: { // Optional coordinates
+    lat: number
+    lng: number
   }
   images: string[]
-  price: {
-    perNight: number
-    currency: string
-  }
-  capacity: {
-    guests: number
-    bedrooms: number
-    bathrooms: number
-    beds: number
-  }
-  amenities: string[]
+  pricePerNight: number // Changed from price.perNight
+  currency?: string // Made optional
+  maxGuests: number // Changed from capacity.guests
+  bedrooms: number // Changed from capacity.bedrooms
+  bathrooms: number // Changed from capacity.bathrooms
+  beds?: number // Made optional
+  amenities: Record<string, boolean>
   propertyType: "house" | "apartment" | "villa" | "cabin" | "treehouse" | "boat"
   hostId: string
   hostName: string
+  hostEmail?: string
+  hostPhone?: string
   hostAvatar?: string
   rating: {
     average: number
@@ -40,6 +36,22 @@ export interface Property {
   updatedAt: string
   isActive: boolean
   featured: boolean
+}
+
+export interface Room {
+  id: string
+  homestayId: string
+  roomName: string
+  roomCode: string
+  roomType: string
+  description: string
+  images: string[]
+  pricePerNight: number
+  capacity: number
+  amenities: Record<string, boolean>
+  isActive: boolean
+  createdAt: any
+  updatedAt: any
 }
 
 export interface SearchFilters {

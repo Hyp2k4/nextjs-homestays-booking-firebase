@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -8,8 +8,9 @@ import { LayoutDashboard, PlusSquare, List, Settings, LogOut } from "lucide-reac
 import { Button } from "@/components/ui/button"
 import { db } from "@/lib/firebase/config"
 import { addDoc, collection } from "firebase/firestore"
-import { toast, ToastContainer } from "react-toastify"
-import 'react-toastify/dist/ReactToastify.css'
+import { toast } from "sonner"
+import { HostService } from "@/lib/host-service"
+import { useAuth } from "@/contexts/auth-context"
 
 const defaultAmenities = {
   Wifi: false,
@@ -21,6 +22,7 @@ const defaultAmenities = {
 
 export default function AddRoomPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [navigating, setNavigating] = useState(false)
   const [images, setImages] = useState<{ [key: string]: File | null }>({
@@ -30,11 +32,14 @@ export default function AddRoomPage() {
     img1: "", img2: "", img3: "", img4: "",
   })
   const [inputs, setInputs] = useState({
+    homestayId: "", // Thêm homestayId
+    roomName: "",
     roomType: "",
     pricePerNight: "",
     description: "",
     amenities: defaultAmenities,
   })
+  const [homestays, setHomestays] = useState<any[]>([])
 
   // Thêm navigation handler
   const handleNavigation = useCallback((path: string) => {
@@ -90,26 +95,66 @@ export default function AddRoomPage() {
   }
 
   const resetForm = () => {
-    setInputs({ roomType: "", pricePerNight: "", description: "", amenities: defaultAmenities })
+    setInputs({ homestayId: "", roomName: "", roomType: "", pricePerNight: "", description: "", amenities: defaultAmenities })
     setImages({ img1: null, img2: null, img3: null, img4: null })
     setPreviews({ img1: "", img2: "", img3: "", img4: "" })
   }
 
+  // Load homestays khi component mount
+  useEffect(() => {
+    const loadHomestays = async () => {
+      if (user) {
+        try {
+          const homestaysData = await HostService.getHostHomestays(user.id)
+          setHomestays(homestaysData)
+        } catch (error) {
+          console.error("Lỗi khi tải danh sách homestay:", error)
+        }
+      }
+    }
+    loadHomestays()
+  }, [user])
+
+  if (!user || user.role !== "host") {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Truy cập bị từ chối</h1>
+          <p className="text-gray-600">Bạn cần đăng nhập với vai trò chủ homestay để truy cập trang này.</p>
+        </div>
+      </div>
+    )
+  }
+
   const onSubmitHandle = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!user || user.role !== "host") {
+      toast.error("Bạn cần đăng nhập với vai trò chủ homestay để thêm phòng")
+      return
+    }
+
     setLoading(true)
 
     try {
       const imageUrls = await uploadImagesToCloudinary()
+      
+      // Tự động tạo mã số phòng
+      const roomCode = await HostService.getNextRoomNumber(inputs.roomType, user.id, inputs.homestayId)
 
       await addDoc(collection(db, "rooms"), {
         ...inputs,
+        hostId: user.id, // Lưu hostId của user đang đăng nhập
+        homestayId: inputs.homestayId, // Lưu homestayId
+        roomCode: roomCode,
+        roomName: inputs.roomName,
         pricePerNight: Number(inputs.pricePerNight),
         images: imageUrls,
+        isActive: true, // Mặc định phòng mới sẽ hoạt động
         createdAt: new Date(),
       })
 
-      toast.success("Thêm phòng thành công!")
+      toast.success(`Thêm phòng thành công! Mã phòng: ${roomCode}`)
       resetForm() // reset form khi thành công
     } catch (err) {
       console.error(err)
@@ -121,89 +166,42 @@ export default function AddRoomPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <ToastContainer position="top-right" autoClose={3000} />
-
-      {/* Sidebar */}
-      <div className="hidden md:flex flex-col w-64 bg-white border-r">
-        <div className="flex items-center justify-center h-16 border-b">
-          <Link href="/" className="flex items-center space-x-2">
-            <Image src="/Logo.svg" alt="Logo" width={80} height={80} />
-          </Link>
-        </div>
-        <div className="flex flex-col flex-grow p-4 overflow-auto">
-          <nav className="flex-1 space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2"
-              disabled={navigating}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleNavigation("/host/dashboard")
-              }}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 bg-gray-100"
-              disabled={navigating}
-            >
-              <PlusSquare className="h-4 w-4" />
-              Add Room
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2"
-              disabled={navigating}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleNavigation("/host/list-rooms")
-              }}
-            >
-              <List className="h-4 w-4" />
-              List Rooms
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2"
-              disabled={navigating}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleNavigation("/host/settings")
-              }}
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </nav>
-          <div className="mt-auto">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 text-red-500 hover:text-red-700"
-              disabled={navigating}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                handleLogout()
-              }}
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto px-4 py-8">
           <form onSubmit={onSubmitHandle} className="max-w-2xl">
             <h1 className="text-2xl font-bold">Add Room</h1>
             <p className="text-gray-600">Fill in the details carefully.</p>
+
+            {/* Homestay Selection */}
+            <div className="mt-6">
+              <p className="text-gray-800 mb-2">Chọn Homestay</p>
+              <select 
+                value={inputs.homestayId} 
+                onChange={(e) => setInputs({ ...inputs, homestayId: e.target.value })} 
+                className="border border-gray-300 rounded p-2 w-full"
+                required
+              >
+                <option value="">Chọn homestay để thêm phòng</option>
+                {homestays.map((homestay) => (
+                  <option key={homestay.id} value={homestay.id}>
+                    {homestay.name} - {homestay.city}
+                  </option>
+                ))}
+              </select>
+              {homestays.length === 0 && (
+                <p className="text-sm text-red-500 mt-1">
+                  Bạn cần tạo homestay trước khi thêm phòng. 
+                  <button 
+                    type="button" 
+                    onClick={() => handleNavigation("/host")}
+                    className="text-blue-500 underline ml-1"
+                  >
+                    Tạo homestay ngay
+                  </button>
+                </p>
+              )}
+            </div>
 
             {/* 4 Image Slots */}
             <p className="text-gray-800 mt-6">Images</p>
@@ -219,6 +217,10 @@ export default function AddRoomPage() {
                 </label>
               ))}
             </div>
+
+            {/* Room Name */}
+            <p className="text-gray-800 mt-4">Room Name</p>
+            <input type="text" placeholder="Enter room name" className="border border-gray-300 mt-1 rounded p-2 w-full" value={inputs.roomName} onChange={(e) => setInputs({ ...inputs, roomName: e.target.value })} />
 
             {/* Room Type & Price */}
             <div className="w-full flex max-sm:flex-col sm:gap-4 mt-4">

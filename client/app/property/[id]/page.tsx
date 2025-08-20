@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { BookingFlow } from "@/components/booking/booking-flow"
-import { mockProperties } from "@/data/mock-properties"
-import type { Property } from "@/types/property"
+import { PropertyService } from "@/lib/property-service"
+import type { Property, Room } from "@/types/property"
 import {
   Star,
   MapPin,
@@ -27,20 +28,43 @@ import {
   Share,
   Heart,
 } from "lucide-react"
+import { ReviewForm } from "@/components/review-form"
+import { ReviewService } from "@/lib/review-service"
+import type { Review } from "@/types/review"
+import { ReviewsList } from "@/components/reviews-list"
 
 export default function PropertyDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const [property, setProperty] = useState<Property | null>(null)
+  const [rooms, setRooms] = useState<Room[]>([])
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [checkIn, setCheckIn] = useState("")
   const [checkOut, setCheckOut] = useState("")
   const [guests, setGuests] = useState(2)
   const [showBookingFlow, setShowBookingFlow] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
 
   useEffect(() => {
-    const foundProperty = mockProperties.find((p) => p.id === params.id)
-    setProperty(foundProperty || null)
-  }, [params.id])
+    const fetchPropertyAndRooms = async () => {
+      if (params?.id) {
+        const propertyData = await PropertyService.getPropertyById(params.id as string)
+        setProperty(propertyData)
+        if (propertyData) {
+          fetchReviews(propertyData.id)
+          const roomsData = await PropertyService.getRoomsByHomestayId(propertyData.id)
+          setRooms(roomsData)
+        }
+      }
+    }
+
+    fetchPropertyAndRooms()
+  }, [params?.id])
+
+  const fetchReviews = async (propertyId: string) => {
+    const fetchedReviews = await ReviewService.getReviewsForProperty(propertyId)
+    setReviews(fetchedReviews)
+  }
 
   if (!property) {
     return (
@@ -69,7 +93,7 @@ export default function PropertyDetailPage() {
   }
 
   const getAmenityIcon = (amenity: string) => {
-    const icons: { [key: string]: any } = {
+    const icons: { [key: string]: React.ElementType } = {
       WiFi: Wifi,
       "Bãi đỗ xe": Car,
       "Hồ bơi": Swimming,
@@ -99,16 +123,16 @@ export default function PropertyDetailPage() {
         {/* Property Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="font-serif font-bold text-3xl text-foreground mb-2">{property.title}</h1>
+            <h1 className="font-serif font-bold text-3xl text-foreground mb-2">{property.name}</h1>
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{property.rating.average}</span>
-                <span>({property.rating.count} đánh giá)</span>
+                <span className="font-medium">{property.rating?.average}</span>
+                <span>({property.rating?.count} đánh giá)</span>
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                <span>{property.location.address}</span>
+                <span>{property.address}</span>
               </div>
             </div>
           </div>
@@ -132,7 +156,7 @@ export default function PropertyDetailPage() {
               <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
                 <Image
                   src={property.images[currentImageIndex] || "/placeholder.svg"}
-                  alt={property.title}
+                  alt={`Image of ${property.name}`}
                   fill
                   className="object-cover"
                 />
@@ -151,7 +175,7 @@ export default function PropertyDetailPage() {
                   >
                     <Image
                       src={image || "/placeholder.svg"}
-                      alt={`${property.title} ${index + 1}`}
+                      alt={`${property.name} ${index + 1}`}
                       fill
                       className="object-cover"
                     />
@@ -168,21 +192,21 @@ export default function PropertyDetailPage() {
                   <div className="flex items-center gap-4 text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {property.capacity.guests} khách
+                      {property.maxGuests} khách tối đa
                     </span>
                     <span className="flex items-center gap-1">
                       <Bed className="h-4 w-4" />
-                      {property.capacity.bedrooms} phòng ngủ
+                      {property.bedrooms} Phòng ngủ
                     </span>
                     <span className="flex items-center gap-1">
                       <Bath className="h-4 w-4" />
-                      {property.capacity.bathrooms} phòng tắm
+                      {property.bathrooms} Phòng tắm
                     </span>
                   </div>
                 </div>
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={property.hostAvatar || "/placeholder.svg"} alt={property.hostName} />
-                  <AvatarFallback>{property.hostName[0]}</AvatarFallback>
+                  <AvatarFallback>{property.hostName?.[0]}</AvatarFallback>
                 </Avatar>
               </div>
 
@@ -191,27 +215,55 @@ export default function PropertyDetailPage() {
                 <p className="text-muted-foreground leading-relaxed">{property.description}</p>
               </div>
 
-              <div className="border-t border-border pt-6">
-                <h3 className="font-semibold text-lg mb-4">Tiện nghi</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {property.amenities.map((amenity) => (
-                    <div key={amenity} className="flex items-center gap-2">
-                      {getAmenityIcon(amenity)}
-                      <span className="text-sm">{amenity}</span>
+              {property.hostName && (
+                <div className="border-t border-border pt-6">
+                  <h3 className="font-semibold text-lg mb-3">Thông tin chủ nhà</h3>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={property.hostAvatar || "/placeholder.svg"} alt={property.hostName || ""} />
+                      <AvatarFallback>{property.hostName?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{property.hostName}</p>
+                      <p className="text-sm text-muted-foreground">{property.hostEmail}</p>
+                      <p className="text-sm text-muted-foreground">{property.hostPhone}</p>
                     </div>
+                  </div>
+                </div>
+              )}
+
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-lg mb-3">Các phòng có sẵn</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {rooms.map((room) => (
+                    <Link href={`/room/${room.id}`} key={room.id}>
+                      <Card className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <h4 className="font-semibold mb-2">{room.roomName}</h4>
+                          <p className="text-sm text-muted-foreground mb-2">{room.description}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-primary">
+                              {formatPrice(room.pricePerNight)} / đêm
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {room.capacity} khách
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               </div>
 
               <div className="border-t border-border pt-6">
-                <h3 className="font-semibold text-lg mb-3">Nội quy</h3>
-                <ul className="space-y-2">
-                  {property.rules.map((rule, index) => (
-                    <li key={index} className="text-sm text-muted-foreground">
-                      • {rule}
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="font-semibold text-lg mb-3">Đánh giá</h3>
+                <ReviewsList reviews={reviews} loading={!property} />
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <ReviewForm propertyId={property.id} onReviewSubmit={() => fetchReviews(property.id)} />
               </div>
             </div>
           </div>
@@ -221,7 +273,9 @@ export default function PropertyDetailPage() {
             <Card className="sticky top-24">
               <CardContent className="p-6 space-y-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">{formatPrice(property.price.perNight)}</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {property.pricePerNight ? formatPrice(property.pricePerNight) : "N/A"}
+                  </div>
                   <div className="text-sm text-muted-foreground">/ đêm</div>
                 </div>
 
@@ -256,7 +310,7 @@ export default function PropertyDetailPage() {
                       onChange={(e) => setGuests(Number.parseInt(e.target.value))}
                       className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
                     >
-                      {Array.from({ length: property.capacity.guests }, (_, i) => i + 1).map((num) => (
+                      {Array.from({ length: property.maxGuests || 0 }, (_, i) => i + 1).map((num) => (
                         <option key={num} value={num}>
                           {num} khách
                         </option>
@@ -265,12 +319,21 @@ export default function PropertyDetailPage() {
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg" onClick={handleBookNow}>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleBookNow}
+                  disabled={!property.isActive}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
-                  Đặt ngay
+                  {property.isActive ? "Đặt ngay" : "Hết phòng"}
                 </Button>
 
-                <div className="text-center text-sm text-muted-foreground">Bạn chưa bị tính phí</div>
+                <div className="text-center text-sm text-muted-foreground">
+                  {property.isActive
+                    ? "Bạn chưa bị tính phí"
+                    : "Homestay hiện không có sẵn để đặt phòng."}
+                </div>
 
                 {checkIn && checkOut && (
                   <div className="border-t border-border pt-4 space-y-2">
@@ -284,7 +347,7 @@ export default function PropertyDetailPage() {
                       </span>
                       <span>
                         {formatPrice(
-                          property.price.perNight *
+                          (property.pricePerNight || 0) *
                             Math.ceil(
                               (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
                             ),
@@ -299,7 +362,7 @@ export default function PropertyDetailPage() {
                       <span>Tổng cộng</span>
                       <span>
                         {formatPrice(
-                          property.price.perNight *
+                          (property.pricePerNight || 0) *
                             Math.ceil(
                               (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
                             ) +

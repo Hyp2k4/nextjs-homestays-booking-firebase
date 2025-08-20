@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { HeroSlider } from "@/components/hero-slider"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -26,7 +27,6 @@ import { useAuth } from "@/contexts/auth-context"
 
 export default function AllHomestaysPage() {
     const [properties, setProperties] = useState<Property[]>([])
-    const [filteredProperties, setFilteredProperties] = useState<Property[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [filters, setFilters] = useState<SearchFilters>({})
     const { user } = useAuth()
@@ -43,17 +43,13 @@ export default function AllHomestaysPage() {
     ]
 
     useEffect(() => {
-        loadProperties()
-    }, [])
+        loadProperties(filters)
+    }, [filters])
 
-    useEffect(() => {
-        filterProperties()
-    }, [properties, filters])
-
-    const loadProperties = async () => {
+    const loadProperties = async (currentFilters: SearchFilters) => {
         setIsLoading(true); // Bắt đầu loading
         try {
-            const data = await PropertyService.searchProperties({});
+            const data = await PropertyService.searchProperties(currentFilters);
             setProperties(data.properties);
         } catch (error) {
             console.error("Error fetching properties:", error);
@@ -62,63 +58,8 @@ export default function AllHomestaysPage() {
         }
     };
 
-
-    const filterProperties = () => {
-        let result = [...properties]
-
-        // Lọc theo địa điểm
-        if (filters.location) {
-            const term = filters.location.toLowerCase()
-            result = result.filter(property =>
-                property.location.city.toLowerCase().includes(term) ||
-                property.location.district.toLowerCase().includes(term))
-        }
-
-        // Lọc theo loại property
-        if (filters.propertyTypes?.length && filters.propertyTypes[0] !== 'all') {
-            result = result.filter(property =>
-                filters.propertyTypes.includes(property.propertyType))
-        }
-
-        // Lọc theo tiện nghi
-        if (filters.amenities?.length) {
-            result = result.filter(property =>
-                filters.amenities.every(amenity =>
-                    property.amenities.includes(amenity)))
-        }
-
-        // Lọc theo khoảng giá
-        if (filters.priceRange) {
-            result = result.filter(property =>
-                property.price.perNight >= filters.priceRange.min &&
-                property.price.perNight <= filters.priceRange.max)
-        }
-
-        // Lọc theo số khách
-        if (filters.guests) {
-            result = result.filter(property =>
-                property.capacity.guests >= filters.guests)
-        }
-
-        // Lọc theo rating
-        if (filters.rating) {
-            result = result.filter(property =>
-                property.rating.average >= filters.rating)
-        }
-
-        // Lọc theo ngày available
-        if (filters.checkIn && filters.checkOut) {
-            result = result.filter(property =>
-                property.availability.some(avail =>
-                    new Date(filters.checkIn) >= new Date(avail.startDate) &&
-                    new Date(filters.checkOut) <= new Date(avail.endDate)))
-        }
-
-        setFilteredProperties(result)
-    }
-
     const handlePropertyClick = (id: string) => {
-        router.push(`/homestays/${id}`)
+        router.push(`/property/${id}`)
     }
 
     const handleWishlist = (e: React.MouseEvent, id: string) => {
@@ -134,6 +75,8 @@ export default function AllHomestaysPage() {
     return (
         <div className="min-h-screen bg-background">
             <Header />
+
+            <HeroSlider />
 
             <main className="container mx-auto px-4 py-8">
                 {/* Filter Section */}
@@ -309,7 +252,7 @@ export default function AllHomestaysPage() {
                         <Button variant="ghost" onClick={resetFilters}>
                             Xóa bộ lọc
                         </Button>
-                        <Button onClick={filterProperties}>
+                        <Button onClick={() => loadProperties(filters)}>
                             Áp dụng bộ lọc
                         </Button>
                     </div>
@@ -318,7 +261,7 @@ export default function AllHomestaysPage() {
                 {/* Results Section */}
                 <div className="mb-4 flex justify-between items-center">
                     <h1 className="text-2xl font-bold">
-                        {filteredProperties.length} Homestay được tìm thấy
+                        {properties.length} Homestay được tìm thấy
                     </h1>
                     <div className="text-sm text-muted-foreground">
                         Sắp xếp theo: <span className="font-medium">Phổ biến</span>
@@ -338,9 +281,9 @@ export default function AllHomestaysPage() {
                             </Card>
                         ))}
                     </div>
-                ) : filteredProperties.length > 0 ? (
+                ) : properties.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredProperties.map((property) => (
+                        {properties.map((property) => (
                             <Card
                                 key={property.id}
                                 className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -349,7 +292,7 @@ export default function AllHomestaysPage() {
                                 <div className="relative aspect-[4/3]">
                                     <Image
                                         src={property.images[0] || "/placeholder.svg"}
-                                        alt={property.title}
+                                        alt={property.name || "Homestay image"}
                                         fill
                                         className="object-cover rounded-t-lg"
                                         priority={property.id === properties[0]?.id}
@@ -368,38 +311,38 @@ export default function AllHomestaysPage() {
                                 </div>
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-semibold text-lg line-clamp-1">{property.title}</h3>
+                                        <h3 className="font-semibold text-lg line-clamp-1">{property.name}</h3>
                                         <div className="flex items-center">
                                             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                                            <span>{property.rating.average.toFixed(1)}</span>
+                                            <span>{Number(property.rating?.average ?? 0).toFixed(1)}</span>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center text-sm text-muted-foreground mb-3">
                                         <MapPin className="h-4 w-4 mr-1" />
                                         <span className="line-clamp-1">
-                                            {property.location.district}, {property.location.city}
+                                            {(property.district || "").toString()} {property.district && property.city ? ", " : ""}{(property.city || "").toString()}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center gap-4 text-sm mb-4">
                                         <div className="flex items-center">
                                             <Users className="h-4 w-4 mr-1" />
-                                            {property.capacity.guests} khách
+                                            {(property.maxGuests ?? 0)} khách
                                         </div>
                                         <div className="flex items-center">
                                             <Bed className="h-4 w-4 mr-1" />
-                                            {property.capacity.bedrooms} phòng ngủ
+                                            {(property.bedrooms ?? 0)} phòng ngủ
                                         </div>
                                         <div className="flex items-center">
                                             <Bath className="h-4 w-4 mr-1" />
-                                            {property.capacity.bathrooms} phòng tắm
+                                            {(property.bathrooms ?? 0)} phòng tắm
                                         </div>
                                     </div>
 
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="text-sm">
-                                            {property.availability.length > 0 ? (
+                                            {property.isActive ? (
                                                 <div className="flex items-center text-green-600">
                                                     <Calendar className="h-4 w-4 mr-1" />
                                                     Còn phòng
@@ -410,7 +353,7 @@ export default function AllHomestaysPage() {
                                         </div>
                                         <div className="text-right">
                                             <div className="font-bold text-lg text-primary">
-                                                {formatPrice(property.price.perNight, property.price.currency)}
+                                                {formatPrice(property.pricePerNight || 0)}
                                             </div>
                                             <div className="text-xs text-muted-foreground">/đêm</div>
                                         </div>
