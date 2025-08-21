@@ -63,11 +63,7 @@ export const ReviewService = {
 
   listenForReviews(propertyId: string, callback: (reviews: Review[]) => void) {
     const reviewCollection = collection(db, "reviews")
-    const q = query(
-      reviewCollection,
-      where("propertyId", "==", propertyId),
-      orderBy("createdAt", "desc"),
-    )
+    const q = query(reviewCollection, where("propertyId", "==", propertyId))
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const reviews = querySnapshot.docs.map(

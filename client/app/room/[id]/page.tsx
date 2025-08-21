@@ -711,7 +711,7 @@ export default function RoomDetailPage() {
 
       {activeChat && (
         <div className="fixed bottom-4 right-4 z-[60]">
-          <ChatWindow chat={activeChat} onClose={() => setActiveChat(null)} />
+          <ChatWindow chat={activeChat} onBack={() => setActiveChat(null)} />
         </div>
       )}
 

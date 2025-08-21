@@ -18,7 +18,7 @@ export function GlobalChatWidget() {
   const [activeChat, setActiveChat] = useState<Chat | null>(null)
 
   useEffect(() => {
-    if (user?.role !== "host") return
+    if (!user) return
 
     const unsubscribe = chatService.subscribeToUserChats(user.id, setChats)
     return () => unsubscribe()
@@ -26,7 +26,7 @@ export function GlobalChatWidget() {
 
   const totalUnreadCount = chats.reduce((acc, chat) => acc + (chat.unreadCount || 0), 0)
 
-  if (user?.role !== "host") {
+  if (!user) {
     return null
   }
 
@@ -43,7 +43,7 @@ export function GlobalChatWidget() {
       {isOpen ? (
         <Card className="w-96 h-[600px] flex flex-col shadow-2xl rounded-xl bg-background border">
           {activeChat ? (
-            <ChatWindow chat={activeChat} onClose={handleBackToList} />
+            <ChatWindow chat={activeChat} onBack={handleBackToList} />
           ) : (
             <>
               <div className="p-4 border-b flex items-center justify-between">
@@ -63,12 +63,7 @@ export function GlobalChatWidget() {
         >
           <MessageSquare className="h-8 w-8" />
           {totalUnreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 rounded-full p-1 h-6 w-6 flex items-center justify-center"
-            >
-              {totalUnreadCount}
-            </Badge>
+            <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 ring-2 ring-white" />
           )}
         </Button>
       )}

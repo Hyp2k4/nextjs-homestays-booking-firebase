@@ -60,11 +60,7 @@ class ChatService {
   }
 
   subscribeToUserChats(userId: string, callback: (chats: Chat[]) => void): () => void {
-    const q = query(
-      collection(db, "chats"),
-      where("participants", "array-contains", userId),
-      orderBy("updatedAt", "desc"),
-    )
+    const q = query(collection(db, "chats"), where("participants", "array-contains", userId))
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const chats: Chat[] = []
@@ -155,7 +151,7 @@ class ChatService {
           content,
           senderId,
           senderName,
-          timestamp: new Date(),
+          timestamp: serverTimestamp(),
         },
         updatedAt: serverTimestamp(),
       })

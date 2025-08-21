@@ -8,18 +8,17 @@ import { chatService } from "@/lib/chat-service"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Send, X } from "lucide-react"
+import { Send, ArrowLeft } from "lucide-react"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 
 interface ChatWindowProps {
   chat: Chat
-  onClose: () => void
+  onBack: () => void
 }
 
-export function ChatWindow({ chat, onClose }: ChatWindowProps) {
+export function ChatWindow({ chat, onBack }: ChatWindowProps) {
   const { user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
@@ -66,22 +65,20 @@ export function ChatWindow({ chat, onClose }: ChatWindowProps) {
   const otherParticipant = otherParticipantId ? chat.participantDetails[otherParticipantId] : null
 
   return (
-    <Card className="w-80 h-96 flex flex-col shadow-lg rounded-lg">
+    <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <div className="p-3 border-b flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Avatar className="w-10 h-10">
-            <AvatarImage src={otherParticipant?.avatar} />
-            <AvatarFallback>{otherParticipant?.name?.[0]}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-medium text-sm">{otherParticipant?.name || "User"}</h3>
-            <p className="text-xs text-gray-500">Online</p>
-          </div>
-        </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-          <X className="h-4 w-4" />
+      <div className="p-3 border-b flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+          <ArrowLeft className="h-4 w-4" />
         </Button>
+        <Avatar className="w-10 h-10">
+          <AvatarImage src={otherParticipant?.avatar} />
+          <AvatarFallback>{otherParticipant?.name?.[0]}</AvatarFallback>
+        </Avatar>
+        <div>
+          <h3 className="font-medium text-sm">{otherParticipant?.name || "User"}</h3>
+          <p className="text-xs text-gray-500">Online</p>
+        </div>
       </div>
 
       {/* Messages */}
@@ -126,6 +123,6 @@ export function ChatWindow({ chat, onClose }: ChatWindowProps) {
           </Button>
         </form>
       </div>
-    </Card>
+    </div>
   )
 }

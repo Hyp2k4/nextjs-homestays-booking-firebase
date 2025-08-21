@@ -22,13 +22,23 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
     if (!user) return
 
     const unsubscribe = chatService.subscribeToUserChats(user.id, (updatedChats) => {
-      setChats(updatedChats)
+      const sortedChats = updatedChats.sort(
+        (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+      )
+      setChats(sortedChats)
     })
 
     return () => unsubscribe()
   }, [user])
 
   if (!user) return null
+
+  const toDate = (timestamp: any): Date => {
+    if (timestamp?.toDate) {
+      return timestamp.toDate()
+    }
+    return new Date(timestamp)
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -82,7 +92,7 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
                         <>
                           <p className="text-sm text-gray-700 truncate mb-1">{chat.lastMessage.content}</p>
                           <p className="text-xs text-gray-500">
-                            {formatDistanceToNow(new Date(chat.lastMessage.timestamp), {
+                            {formatDistanceToNow(toDate(chat.lastMessage.timestamp), {
                               addSuffix: true,
                               locale: vi,
                             })}

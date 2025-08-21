@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Review } from "@/types/review"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Star, Heart } from "lucide-react"
@@ -185,8 +185,25 @@ const ReviewCard = ({
   )
 }
 
-export function ReviewsList({ reviews, loading, hostId }: ReviewsListProps) {
+export function ReviewsList({ reviews: initialReviews, loading, hostId }: ReviewsListProps) {
   const [visibleReviewsCount, setVisibleReviewsCount] = useState(5)
+  const [reviews, setReviews] = useState<Review[]>([])
+
+  useEffect(() => {
+    if (initialReviews) {
+      const sortedReviews = [...initialReviews].sort(
+        (a, b) => toDate(b.createdAt).getTime() - toDate(a.createdAt).getTime(),
+      )
+      setReviews(sortedReviews)
+    }
+  }, [initialReviews])
+
+  const toDate = (timestamp: any): Date => {
+    if (timestamp?.toDate) {
+      return timestamp.toDate()
+    }
+    return new Date(timestamp)
+  }
 
   if (loading) {
     return (
