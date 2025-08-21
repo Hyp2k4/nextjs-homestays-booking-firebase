@@ -1,5 +1,5 @@
 export interface Message {
-  id: string
+  id:string
   chatId: string
   senderId: string
   senderName: string
@@ -7,6 +7,8 @@ export interface Message {
   content: string
   timestamp: Date
   read: boolean
+  type: "text" | "image"
+  imageUrl?: string
 }
 
 export interface Chat {
@@ -24,7 +26,7 @@ export interface Chat {
   propertyId?: string
   propertyName?: string
   lastMessage?: Message
-  unreadCount?: number
+  unreadCount?: { [key: string]: number }
   createdAt: Date
   updatedAt: Date
 }

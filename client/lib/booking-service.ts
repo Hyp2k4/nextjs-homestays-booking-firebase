@@ -113,8 +113,17 @@ export class BookingService {
     }
   }
 
-  static async createRoomBooking(bookingData: RoomBookingData, user: { name: string, email: string }, room: Room): Promise<{ success: boolean; bookingId?: string; error?: string }> {
+  static async createRoomBooking(bookingData: RoomBookingData, user: { name: string, email: string }, room: Room, voucherId?: string): Promise<{ success: boolean; bookingId?: string; error?: string }> {
     try {
+      if (voucherId) {
+        const voucherRef = doc(db, "vouchers", voucherId);
+        await updateDoc(voucherRef, { 
+          isActive: false,
+          redeemedCount: 1,
+          redeemedBy: [bookingData.userId]
+        });
+      }
+
       let homestayName = "N/A";
       if (room.homestayId) {
         const homestayDoc = await getDoc(doc(db, "homestays", room.homestayId));

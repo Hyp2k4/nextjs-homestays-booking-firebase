@@ -10,7 +10,7 @@ import { toast } from "sonner"
 
 interface ReviewFormProps {
   propertyId: string // This is the homestayId
-  roomId: string
+  roomId?: string
   onReviewSubmit: () => void
 }
 
@@ -36,7 +36,7 @@ export function ReviewForm({ propertyId, roomId, onReviewSubmit }: ReviewFormPro
     try {
       await ReviewService.addReview({
         propertyId, // homestayId
-        roomId,
+        roomId: roomId || "", // Pass roomId if it exists
         userId: user.id,
         userName: user.name || "Anonymous",
         userAvatar: user.avatar || undefined,

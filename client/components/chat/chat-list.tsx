@@ -78,7 +78,12 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-sm truncate">{otherParticipant?.name || "User"}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-sm truncate">{otherParticipant?.name || "User"}</h3>
+                          {chat.unreadCount && user && chat.unreadCount[user.id] > 0 && (
+                            <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                          )}
+                        </div>
                         {chat.unreadCount && chat.unreadCount > 0 ? (
                           <Badge variant="destructive" className="text-xs">
                             {chat.unreadCount}

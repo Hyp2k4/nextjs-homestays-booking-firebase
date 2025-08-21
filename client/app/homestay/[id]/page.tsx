@@ -206,6 +206,19 @@ export default function HomestayDetailPage() {
               </div>
             )}
 
+            {property.rules && property.rules.length > 0 && (
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-lg mb-3">Nội quy Homestay</h3>
+                <ul className="list-none space-y-2">
+                  {property.rules.map((rule, index) => (
+                    <li key={index} className="text-muted-foreground">
+                      +) {rule}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="border-t border-border pt-6">
               <h3 className="font-semibold text-lg mb-3">Các phòng có sẵn</h3>
               <div className="space-y-4">

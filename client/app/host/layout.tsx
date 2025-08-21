@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, PlusSquare, List, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, PlusSquare, List, Settings, LogOut, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useAuth } from "@/contexts/auth-context"
@@ -14,6 +14,7 @@ export default function HostLayout({ children }: { children: React.ReactNode }) 
     { href: "/host", label: "Dashboard", icon: LayoutDashboard },
     { href: "/host/add-room", label: "Add Room", icon: PlusSquare },
     { href: "/host/list-room", label: "List Rooms", icon: List },
+    { href: "/host/vouchers", label: "My Vouchers", icon: Tag },
     { href: "/host/settings", label: "Settings", icon: Settings },
   ]
 

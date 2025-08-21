@@ -1,4 +1,5 @@
-import { v2 as cloudinary } from "cloudinary";
+import { NextResponse } from 'next/server';
+import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -6,30 +7,36 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const POST = async (req: Request) => {
+export async function POST(request: Request) {
   try {
-    const formData = await req.formData();
-    const files = formData.getAll("file") as File[];
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
 
-    const uploadPromises = files.map(async (file) => {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const result = await new Promise<any>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "rooms" },
-          (error, result) => (error ? reject(error) : resolve(result))
-        );
-        stream.end(buffer);
-      });
-      return result.secure_url; // đây là URL Cloudinary
+    if (!file) {
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+
+    const uploadResult: any = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          tags: ['avatar']
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(result);
+        }
+      ).end(buffer);
     });
 
-    const urls = await Promise.all(uploadPromises);
-
-    return new Response(JSON.stringify({ urls }), { status: 200 });
-  } catch (err: any) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-    });
+    return NextResponse.json(uploadResult);
+  } catch (error: any) {
+    console.error('Error uploading to Cloudinary:', error);
+    return NextResponse.json({ error: error.message || 'Something went wrong' }, { status: 500 });
   }
-};
+}

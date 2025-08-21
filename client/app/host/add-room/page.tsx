@@ -151,6 +151,7 @@ export default function AddRoomPage() {
         pricePerNight: Number(inputs.pricePerNight),
         images: imageUrls,
         isActive: true, // Mặc định phòng mới sẽ hoạt động
+        rules: ["Không được sử dụng chất kích thích, rượu, bia"], // Add default rule
         createdAt: new Date(),
       })
 

@@ -86,6 +86,7 @@
     "@types/formidable": "^3.4.5",
     "@types/node": "^22",
     "@types/nodemailer": "^7.0.0",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8.5",

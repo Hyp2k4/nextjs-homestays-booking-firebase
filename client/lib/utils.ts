@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import type { ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { formatDistanceToNow } from 'date-fns';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -24,4 +25,16 @@ export function formatPhoneNumber(phone: string): string {
     return "+84" + phone;
   }
   return phone;
+}
+
+export function removeDiacritics(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+}
+
+export function formatTimeRemaining(expiryDate: Date): string {
+  return formatDistanceToNow(expiryDate, { addSuffix: true });
 }

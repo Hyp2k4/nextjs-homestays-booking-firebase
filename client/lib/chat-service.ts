@@ -11,8 +11,10 @@ import {
   serverTimestamp,
   getDoc,
   type Unsubscribe,
+  writeBatch,
 } from "firebase/firestore"
-import { db } from "./firebase/config"
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { db, storage } from "./firebase/config"
 import type { Chat, Message } from "@/types/chat"
 import type { Booking } from "@/types/booking"
 
@@ -128,16 +130,32 @@ class ChatService {
     senderName: string,
     senderType: "guest" | "host",
     content: string,
+    imageFile?: File,
   ): Promise<Message | null> {
     try {
-      const messageData = {
+      let imageUrl: string | undefined
+      let messageType: "text" | "image" = "text"
+
+      if (imageFile) {
+        const storageRef = ref(storage, `chat-images/${chatId}/${Date.now()}_${imageFile.name}`)
+        await uploadBytes(storageRef, imageFile)
+        imageUrl = await getDownloadURL(storageRef)
+        messageType = "image"
+      }
+
+      const messageData: any = {
         chatId,
         senderId,
         senderName,
         senderType,
-        content,
+        content: messageType === "image" ? "Image" : content,
         timestamp: serverTimestamp(),
         read: false,
+        type: messageType,
+      }
+
+      if (imageUrl) {
+        messageData.imageUrl = imageUrl
       }
 
       // Add message to subcollection
@@ -145,16 +163,25 @@ class ChatService {
 
       // Update chat's last message and timestamp
       const chatRef = doc(db, "chats", chatId)
-      await updateDoc(chatRef, {
-        lastMessage: {
-          id: docRef.id,
-          content,
-          senderId,
-          senderName,
-          timestamp: serverTimestamp(),
-        },
-        updatedAt: serverTimestamp(),
-      })
+      const chatDoc = await getDoc(chatRef)
+      const chatData = chatDoc.data()
+      const recipientId = chatData?.participants.find((p: string) => p !== senderId)
+
+      if (recipientId) {
+        const unreadCount = chatData?.unreadCount ? chatData.unreadCount[recipientId] || 0 : 0
+        await updateDoc(chatRef, {
+          lastMessage: {
+            id: docRef.id,
+            content: messageData.content,
+            senderId,
+            senderName,
+            timestamp: serverTimestamp(),
+            type: messageType,
+          },
+          updatedAt: serverTimestamp(),
+          [`unreadCount.${recipientId}`]: unreadCount + 1,
+        })
+      }
 
       return {
         id: docRef.id,
@@ -169,9 +196,20 @@ class ChatService {
 
   async markAsRead(chatId: string, userId: string): Promise<void> {
     try {
-      // This would require a more complex query to update multiple documents
-      // For now, we'll implement this as a batch operation or cloud function
-      console.log("Marking messages as read for chat:", chatId, "user:", userId)
+      const messagesRef = collection(db, "chats", chatId, "messages")
+      const q = query(messagesRef, where("senderId", "!=", userId), where("read", "==", false))
+      const querySnapshot = await getDocs(q)
+
+      const batch = writeBatch(db)
+      querySnapshot.forEach((doc) => {
+        batch.update(doc.ref, { read: true })
+      })
+      await batch.commit()
+
+      const chatRef = doc(db, "chats", chatId)
+      await updateDoc(chatRef, {
+        [`unreadCount.${userId}`]: 0,
+      })
     } catch (error) {
       console.error("Error marking messages as read:", error)
     }
@@ -202,7 +240,8 @@ class ChatService {
         propertyId: booking.propertyId,
         propertyName: booking.propertyTitle,
         participants: [booking.userId, booking.hostId],
-        unreadCount: 0,
+        participantDetails: {},
+        unreadCount: { [booking.userId]: 0, [booking.hostId]: 0 },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }

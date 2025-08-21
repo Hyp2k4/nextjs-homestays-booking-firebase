@@ -16,21 +16,24 @@ import {
 } from "@/components/ui/drawer"
 import { RainbowButton } from "@/components/ui/rainbow-button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { PropertyService } from "@/lib/property-service"
 import { BookingService } from "@/lib/booking-service"
+import { VoucherService } from "@/lib/voucher-service"
 import { UserService } from "@/lib/user-service"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import type { Room } from "@/types/property"
+import type { Voucher } from "@/types/voucher"
 import type { RoomBookingData } from "@/types/booking"
 import { ReviewForm } from "@/components/review-form"
 import { ReviewService } from "@/lib/review-service"
 import type { Review } from "@/types/review"
 import { ReviewsList } from "@/components/reviews-list"
-import { formatPrice, formatPhoneNumber } from "@/lib/utils"
+import { formatPrice, formatPhoneNumber, formatTimeRemaining } from "@/lib/utils"
 import {
   Star,
   MapPin,
@@ -55,6 +58,7 @@ import {
   Mountain,
   Waves,
   MessageSquare,
+  AlarmClock,
 } from "lucide-react"
 import { SuggestedProperties } from "@/components/suggested-properties"
 import { useIsDesktop } from "@/hooks/use-desktop"
@@ -83,6 +87,8 @@ export default function RoomDetailPage() {
     user?.roomWishlist?.includes(params?.id as string) ?? false,
   )
   const [activeChat, setActiveChat] = useState<Chat | null>(null)
+  const [userVouchers, setUserVouchers] = useState<Voucher[]>([])
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
 
   useEffect(() => {
     setIsInWishlist(user?.roomWishlist?.includes(params?.id as string) ?? false)
@@ -136,6 +142,10 @@ export default function RoomDetailPage() {
           const hostData = await UserService.getUserById(homestayData.hostId)
           setHost(hostData)
         }
+        if (user) {
+          const vouchers = await VoucherService.getMyVouchers(user.id)
+          setUserVouchers(vouchers)
+        }
       } catch (error) {
         console.error("Failed to fetch room details:", error)
         toast.error("Không thể tải thông tin phòng.")
@@ -147,7 +157,7 @@ export default function RoomDetailPage() {
 
     // Cleanup listener on component unmount
     return () => unsubscribe()
-  }, [params?.id])
+  }, [params?.id, user])
 
   if (loading || isDesktop === undefined) {
     return (
@@ -246,6 +256,15 @@ export default function RoomDetailPage() {
     setLoading(true)
     try {
       const totalNights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+      let totalPrice = room.pricePerNight * totalNights;
+      if (selectedVoucher) {
+        if (selectedVoucher.discountType === 'percentage') {
+          totalPrice -= totalPrice * (selectedVoucher.discountValue / 100);
+        } else {
+          totalPrice -= selectedVoucher.discountValue;
+        }
+      }
+
       const bookingData = {
         userId: user.id,
         roomId: room.id,
@@ -253,7 +272,7 @@ export default function RoomDetailPage() {
         checkInDate: new Date(checkIn),
         checkOutDate: new Date(checkOut),
         guests,
-        totalPrice: room.pricePerNight * totalNights,
+        totalPrice,
         status: "pending" as const,
         roomName: room.roomName,
         totalNights: totalNights,
@@ -261,7 +280,7 @@ export default function RoomDetailPage() {
         hostId: homestay.hostId,
       };
       
-      const result = await BookingService.createRoomBooking(bookingData, { name: user.name, email: user.email }, room);
+      const result = await BookingService.createRoomBooking(bookingData, { name: user.name, email: user.email }, room, selectedVoucher?.id);
 
       if (result.success && result.bookingId) {
         toast.success("Booking successful! Sending confirmation email...");
@@ -274,9 +293,16 @@ export default function RoomDetailPage() {
             to: user.email,
             bookingId: result.bookingId,
             bookingDetails: {
+              userName: user.name,
               roomName: room.roomName,
+              location: homestay?.address,
+              phone: host?.phone,
               checkInDate: bookingData.checkInDate,
               checkOutDate: bookingData.checkOutDate,
+              totalPrice: bookingData.totalPrice,
+              guests: bookingData.guests,
+              voucherCode: selectedVoucher?.code,
+              discountAmount: selectedVoucher ? (selectedVoucher.discountType === 'percentage' ? (room.pricePerNight * totalNights) * (selectedVoucher.discountValue / 100) : selectedVoucher.discountValue) : 0,
             },
           }),
         }).catch(err => console.error("Failed to send email:", err));
@@ -411,6 +437,19 @@ export default function RoomDetailPage() {
                 </div>
               </div>
 
+              {room.rules && room.rules.length > 0 && (
+                <div className="border-t border-border pt-6">
+                  <h3 className="font-semibold text-lg mb-3">Nội quy phòng</h3>
+                  <ul className="list-none space-y-2">
+                    {room.rules.map((rule: string, index: number) => (
+                      <li key={index} className="text-muted-foreground">
+                        +) {rule}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {host && (
                 <div className="border-t border-border pt-6">
                   <h3 className="font-semibold text-lg mb-4">Thông tin chủ nhà</h3>
@@ -520,6 +559,38 @@ export default function RoomDetailPage() {
                         />
                       </div>
                     )}
+                    {userVouchers.length > 0 && (
+                      <div>
+                        <label className="text-sm font-medium">Voucher</label>
+                        <Select onValueChange={voucherId => {
+                          const voucher = userVouchers.find(v => v.id === voucherId);
+                          setSelectedVoucher(voucher || null);
+                        }}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select a voucher" />
+                          </SelectTrigger>
+                          <SelectContent className="w-80">
+                            {userVouchers.map(voucher => (
+                              <SelectItem key={voucher.id} value={voucher.id}>
+                                <div className="flex justify-between items-center w-full">
+                                  <div>
+                                    <p className="font-semibold">{voucher.code}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{voucher.description}</p>
+                                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                                      <AlarmClock className="h-3 w-3 mr-1" />
+                                      Expires {formatTimeRemaining(voucher.expiryDate)}
+                                    </div>
+                                  </div>
+                                  <p className="text-xs font-bold text-primary">
+                                    {voucher.discountType === 'percentage' ? `${voucher.discountValue}% off` : `${formatPrice(voucher.discountValue)} off`}
+                                  </p>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
 
                   {!availabilityChecked || !isAvailable ? (
@@ -563,15 +634,32 @@ export default function RoomDetailPage() {
                         <span>Phí dịch vụ</span>
                         <span>{formatPrice(50000)}</span>
                       </div>
+                      {selectedVoucher && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount ({selectedVoucher.code})</span>
+                          <span>
+                            -
+                            {selectedVoucher.discountType === 'percentage'
+                              ? formatPrice(
+                                  room.pricePerNight *
+                                    Math.ceil(
+                                      (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
+                                        (1000 * 60 * 60 * 24),
+                                    ) *
+                                    (selectedVoucher.discountValue / 100),
+                                )
+                              : formatPrice(selectedVoucher.discountValue)}
+                          </span>
+                        </div>
+                      )}
                       <div className="border-t border-border pt-2 flex justify-between font-semibold">
                         <span>Tổng cộng</span>
                         <span>
                           {formatPrice(
-                            room.pricePerNight *
+                            (room.pricePerNight *
                             Math.ceil(
                               (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
-                            ) +
-                            50000,
+                            )) + 50000 - (selectedVoucher ? (selectedVoucher.discountType === 'percentage' ? (room.pricePerNight * Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))) * (selectedVoucher.discountValue / 100) : selectedVoucher.discountValue) : 0)
                           )}
                         </span>
                       </div>

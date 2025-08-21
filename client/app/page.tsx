@@ -4,6 +4,7 @@
 
 import { SearchSection } from "@/components/search-section"
 import { FeaturedProperties } from "@/components/featured-properties"
+import { VoucherSlider } from "@/components/voucher-slider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { HeroSlider } from "@/components/hero-slider"
@@ -21,6 +22,8 @@ export default function HomePage() {
             <SearchSection />
           </div>
         </section>
+
+        <VoucherSlider />
 
         {/* Featured Properties */}
         <section className="py-16">

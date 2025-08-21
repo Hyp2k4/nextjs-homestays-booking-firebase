@@ -24,7 +24,10 @@ export function GlobalChatWidget() {
     return () => unsubscribe()
   }, [user])
 
-  const totalUnreadCount = chats.reduce((acc, chat) => acc + (chat.unreadCount || 0), 0)
+  const totalUnreadCount = chats.reduce((acc, chat) => {
+    const unread = chat.unreadCount && user ? chat.unreadCount[user.id] || 0 : 0
+    return acc + unread
+  }, 0)
 
   if (!user) {
     return null
@@ -46,12 +49,6 @@ export function GlobalChatWidget() {
             <ChatWindow chat={activeChat} onBack={handleBackToList} />
           ) : (
             <>
-              <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Tin nhắn</h2>
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
               <ChatList onChatSelect={handleChatSelect} />
             </>
           )}
@@ -63,7 +60,12 @@ export function GlobalChatWidget() {
         >
           <MessageSquare className="h-8 w-8" />
           {totalUnreadCount > 0 && (
-            <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 ring-2 ring-white" />
+            <Badge
+              variant="destructive"
+              className="absolute -top-1 -right-1 h-6 w-6 rounded-full flex items-center justify-center text-xs"
+            >
+              {totalUnreadCount}
+            </Badge>
           )}
         </Button>
       )}

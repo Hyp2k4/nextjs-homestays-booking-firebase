@@ -12,6 +12,8 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import type { Property } from "@/types/property";
 
@@ -314,6 +316,95 @@ export const HostService = {
       return roomData.hostId === hostId;
     } catch (error) {
       console.error("Error checking room ownership:", error);
+      return false;
+    }
+  },
+
+  // === RULE MANAGEMENT ===
+  async addHomestayRule(
+    homestayId: string,
+    rule: string,
+    hostId: string
+  ): Promise<boolean> {
+    try {
+      const homestayRef = doc(db, "homestays", homestayId);
+      const homestayDoc = await getDoc(homestayRef);
+      if (homestayDoc.exists() && homestayDoc.data().hostId === hostId) {
+        await updateDoc(homestayRef, {
+          rules: arrayUnion(rule),
+        });
+        return true;
+      }
+      console.error("Unauthorized or homestay not found");
+      return false;
+    } catch (error) {
+      console.error("Error adding homestay rule:", error);
+      return false;
+    }
+  },
+
+  async deleteHomestayRule(
+    homestayId: string,
+    rule: string,
+    hostId: string
+  ): Promise<boolean> {
+    try {
+      const homestayRef = doc(db, "homestays", homestayId);
+      const homestayDoc = await getDoc(homestayRef);
+      if (homestayDoc.exists() && homestayDoc.data().hostId === hostId) {
+        await updateDoc(homestayRef, {
+          rules: arrayRemove(rule),
+        });
+        return true;
+      }
+      console.error("Unauthorized or homestay not found");
+      return false;
+    } catch (error) {
+      console.error("Error deleting homestay rule:", error);
+      return false;
+    }
+  },
+
+  async addRoomRule(
+    roomId: string,
+    rule: string,
+    hostId: string
+  ): Promise<boolean> {
+    try {
+      const roomRef = doc(db, "rooms", roomId);
+      const roomDoc = await getDoc(roomRef);
+      if (roomDoc.exists() && roomDoc.data().hostId === hostId) {
+        await updateDoc(roomRef, {
+          rules: arrayUnion(rule),
+        });
+        return true;
+      }
+      console.error("Unauthorized or room not found");
+      return false;
+    } catch (error) {
+      console.error("Error adding room rule:", error);
+      return false;
+    }
+  },
+
+  async deleteRoomRule(
+    roomId: string,
+    rule: string,
+    hostId: string
+  ): Promise<boolean> {
+    try {
+      const roomRef = doc(db, "rooms", roomId);
+      const roomDoc = await getDoc(roomRef);
+      if (roomDoc.exists() && roomDoc.data().hostId === hostId) {
+        await updateDoc(roomRef, {
+          rules: arrayRemove(rule),
+        });
+        return true;
+      }
+      console.error("Unauthorized or room not found");
+      return false;
+    } catch (error) {
+      console.error("Error deleting room rule:", error);
       return false;
     }
   },

@@ -21,7 +21,8 @@ import {
   updateDoc,
   collection,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion
 } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase/config"
 import type { User, AuthState, LoginCredentials, RegisterCredentials } from "@/types/auth"
@@ -34,6 +35,7 @@ interface AuthContextType extends AuthState {
   ) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>
   signInWithGoogle: () => Promise<{ success: boolean; error?: string }>
   logout: () => void
+  uploadAvatar: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>
   updateProfile: (updates: Partial<User>) => Promise<void>
   updateUserProfile: (updates: Partial<User>) => Promise<{ success: boolean; error?: string }>
   resendEmailVerification: () => Promise<{ success: boolean; error?: string }>
@@ -478,6 +480,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const uploadAvatar = async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
+    if (!user) return { success: false, error: "Bạn cần đăng nhập" }
+    
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
+
+      const result = await response.json()
+      
+      if (result.secure_url) {
+        return { success: true, url: result.secure_url }
+      } else {
+        return { success: false, error: 'Cloudinary did not return a secure URL' }
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tải ảnh đại diện:", error)
+      return { success: false, error: error.message || "Không thể tải ảnh lên" }
+    }
+  }
+
   const value: AuthContextType = {
     user,
     isLoading: loading,
@@ -487,6 +519,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     logout,
     updateProfile,
+    uploadAvatar,
     updateUserProfile,
     resendEmailVerification,
     checkEmailVerification,

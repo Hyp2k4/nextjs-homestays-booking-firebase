@@ -4,8 +4,10 @@ import { Open_Sans } from "next/font/google"
 import "./globals.css"
 import "leaflet/dist/leaflet.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { PromoProvider } from "@/contexts/promo-context"
 import { Toaster } from "sonner"
 import { GlobalChatWidget } from "@/components/chat/global-chat-widget"
+import { LivePromoBadge } from "@/components/live-promo-badge"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -43,9 +45,12 @@ export default function RootLayout({
     <html lang="en" className={`${montserrat.variable} ${openSans.variable} ${playfair.variable} antialiased`} suppressHydrationWarning>
       <body className="font-sans">
         <AuthProvider>
-          {children}
-          <Toaster position="top-right" richColors />
-          <GlobalChatWidget />
+          <PromoProvider>
+            <LivePromoBadge />
+            {children}
+            <Toaster position="top-right" richColors />
+            <GlobalChatWidget />
+          </PromoProvider>
         </AuthProvider>
       </body>
     </html>

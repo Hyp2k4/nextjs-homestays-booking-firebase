@@ -13,6 +13,7 @@ export interface User {
   propertyWishlist?: string[];
   roomWishlist?: string[];
   isActive?: boolean;
+  isBanned?: boolean;
 }
 
 export interface AuthState {

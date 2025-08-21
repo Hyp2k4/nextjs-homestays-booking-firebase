@@ -9,9 +9,10 @@ import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Send, ArrowLeft } from "lucide-react"
+import { Send, ArrowLeft, Paperclip } from "lucide-react"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
+import Image from "next/image"
 
 interface ChatWindowProps {
   chat: Chat
@@ -22,8 +23,10 @@ export function ChatWindow({ chat, onBack }: ChatWindowProps) {
   const { user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!chat?.id) return
@@ -50,13 +53,33 @@ export function ChatWindow({ chat, onBack }: ChatWindowProps) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !user) return
+    if ((!newMessage.trim() && !imageFile) || !user) return
 
     const senderType = user.role === "host" ? "host" : "guest"
     const currentMessage = newMessage.trim()
-    setNewMessage("")
+    const currentImageFile = imageFile
 
-    await chatService.sendMessage(chat.id, user.id, user.name || "User", senderType, currentMessage)
+    setNewMessage("")
+    setImageFile(null)
+
+    await chatService.sendMessage(
+      chat.id,
+      user.id,
+      user.name || "User",
+      senderType,
+      currentMessage,
+      currentImageFile || undefined,
+    )
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0])
+    }
+  }
+
+  const handleAttachmentClick = () => {
+    fileInputRef.current?.click()
   }
 
   if (!user) return null
@@ -96,7 +119,11 @@ export function ChatWindow({ chat, onBack }: ChatWindowProps) {
                     isOwnMessage ? "bg-primary text-primary-foreground" : "bg-muted"
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  {message.type === "image" && message.imageUrl ? (
+                    <Image src={message.imageUrl} alt="Sent image" width={200} height={200} className="rounded-md" />
+                  ) : (
+                    <p className="text-sm">{message.content}</p>
+                  )}
                   <p className={`text-xs mt-1 text-right ${isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground/70"}`}>
                     {format(new Date(message.timestamp), "HH:mm")}
                   </p>
@@ -110,7 +137,17 @@ export function ChatWindow({ chat, onBack }: ChatWindowProps) {
 
       {/* Message Input */}
       <div className="p-2 border-t">
-        <form onSubmit={handleSendMessage} className="flex gap-2">
+        <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+          <Button type="button" variant="ghost" size="icon" onClick={handleAttachmentClick}>
+            <Paperclip className="w-4 h-4" />
+          </Button>
+          <Input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept="image/*"
+          />
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
@@ -118,7 +155,8 @@ export function ChatWindow({ chat, onBack }: ChatWindowProps) {
             className="flex-1"
             autoComplete="off"
           />
-          <Button type="submit" disabled={!newMessage.trim()} size="icon">
+          {imageFile && <p className="text-sm text-gray-500 truncate max-w-[100px]">{imageFile.name}</p>}
+          <Button type="submit" disabled={!newMessage.trim() && !imageFile} size="icon">
             <Send className="w-4 h-4" />
           </Button>
         </form>

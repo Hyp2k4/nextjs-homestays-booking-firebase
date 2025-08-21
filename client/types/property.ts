@@ -36,6 +36,7 @@ export interface Property {
   updatedAt: string
   isActive: boolean
   featured: boolean
+  status: "pending" | "approved" | "denied";
 }
 
 export interface Room {
@@ -49,6 +50,7 @@ export interface Room {
   pricePerNight: number
   capacity: number
   amenities: Record<string, boolean>
+  rules: string[]
   isActive: boolean
   createdAt: any
   updatedAt: any

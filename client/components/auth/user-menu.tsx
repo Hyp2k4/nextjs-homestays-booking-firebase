@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/contexts/auth-context"
-import { User, Settings, LogOut, Home, Calendar, BarChart3, Shield } from "lucide-react"
+import { User, Settings, LogOut, Home, Calendar, BarChart3, Shield, Tag } from "lucide-react"
 
 export function UserMenu() {
   const { user, logout } = useAuth()
@@ -47,8 +47,12 @@ export function UserMenu() {
           <span>Thông tin tài khoản</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/bookings")}>
-          <User className="mr-2 h-4 w-4" />
+          <Calendar className="mr-2 h-4 w-4" />
           <span>Bookings</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/my-voucher")}>
+          <Tag className="mr-2 h-4 w-4" />
+          <span>Voucher của tôi</span>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />

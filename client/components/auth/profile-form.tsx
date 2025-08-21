@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,13 +19,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
-import { toast } from "react-toastify"
+import { toast } from "sonner"
 import { Loader2, User, Mail, Phone, Shield, Camera, Edit, Trash2, CheckCircle, XCircle, RefreshCw } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import type { User as UserType } from "@/types/auth"
 
 export function ProfileForm() {
-  const { user, updateUserProfile, resendEmailVerification, checkEmailVerification, resetPassword } = useAuth()
+  const { user, updateUserProfile, resendEmailVerification, checkEmailVerification, resetPassword, uploadAvatar } = useAuth()
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [formData, setFormData] = useState({
@@ -33,7 +33,9 @@ export function ProfileForm() {
     phone: '',
     avatar: ''
   })
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (user) {
@@ -50,20 +52,42 @@ export function ProfileForm() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setAvatarFile(file)
+      setFormData(prev => ({ ...prev, avatar: URL.createObjectURL(file) }))
+    }
+  }
+
   const handleSaveProfile = async () => {
     if (!user) return
 
     setUpdating(true)
     try {
-      const result = await updateUserProfile(formData)
+      let updatedData = { ...formData }
+
+      if (avatarFile) {
+        toast.info("Đang tải ảnh đại diện lên...")
+        const uploadResult = await uploadAvatar(avatarFile)
+        if (uploadResult.success && uploadResult.url) {
+          updatedData.avatar = uploadResult.url
+          toast.success("Tải ảnh đại diện thành công!")
+        } else {
+          throw new Error(uploadResult.error || "Lỗi khi tải ảnh đại diện")
+        }
+      }
+
+      const result = await updateUserProfile(updatedData)
       if (result.success) {
         toast.success("Cập nhật thông tin thành công!")
         setIsEditing(false)
+        setAvatarFile(null)
       } else {
-        toast.error(result.error || "Có lỗi xảy ra khi cập nhật thông tin")
+        throw new Error(result.error || "Có lỗi xảy ra khi cập nhật thông tin")
       }
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi cập nhật thông tin")
+    } catch (error: any) {
+      toast.error(error.message || "Có lỗi xảy ra")
     } finally {
       setUpdating(false)
     }
@@ -172,24 +196,30 @@ export function ProfileForm() {
             {/* Avatar */}
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={isEditing ? formData.avatar : user.avatar} alt={user.name} />
                 <AvatarFallback className="text-lg">
                   {user.name?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
-                <div className="space-y-2">
-                  <Label htmlFor="avatar" className="text-sm font-medium">
-                    URL ảnh đại diện
-                  </Label>
+                <div>
                   <Input
-                    id="avatar"
-                    name="avatar"
-                    value={formData.avatar}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com/avatar.jpg"
-                    className="w-64"
+                    type="file"
+                    id="avatar-upload"
+                    ref={fileInputRef}
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                    accept="image/*"
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Thay đổi ảnh
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">JPG, PNG, GIF. Tối đa 5MB.</p>
                 </div>
               )}
             </div>
@@ -292,7 +322,8 @@ export function ProfileForm() {
                       name: user.name || '',
                       phone: user.phone || '',
                       avatar: user.avatar || ''
-                    })
+                    });
+                    setAvatarFile(null);
                   }}
                   disabled={updating}
                 >

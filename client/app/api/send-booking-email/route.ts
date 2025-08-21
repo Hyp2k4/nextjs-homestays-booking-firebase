@@ -28,56 +28,28 @@ export async function POST(req: Request) {
         <div style="text-align: center; margin-bottom: 15px;">
           <img src="https://media.giphy.com/media/OkJat1YNdoD3W/giphy.gif" alt="Booking Confirmed" style="width: 90px; margin-bottom: 8px;" />
           <h2 style="color: #2563eb; margin: 0;">Booking Confirmed!</h2>
-          <p style="color: #4b5563; font-size: 15px; margin-top: 4px;">
-            Hello <strong>${
-              bookingDetails.userName || "Guest"
-            }</strong>, we’re excited to host you!
-          </p>
         </div>
 
         <!-- Details Card -->
         <div style="background: white; padding: 20px; border-radius: 10px; margin-top: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.08);">
-          <h3 style="color: #111827; margin-top: 0; margin-bottom: 12px;">📅 Booking Details</h3>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr>
-              <td style="padding: 6px 0; color: #6b7280; width: 35%;"><strong>Booking ID:</strong></td>
-              <td style="padding: 6px 0;">${bookingId}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Homestay:</strong></td>
-              <td style="padding: 6px 0;">${bookingDetails.roomName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Location:</strong></td>
-              <td style="padding: 6px 0;">${
-                bookingDetails.location || "Not specified"
-              }</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Phone:</strong></td>
-              <td style="padding: 6px 0;">${bookingDetails.phone || "N/A"}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Check-In:</strong></td>
-              <td style="padding: 6px 0;">${new Date(
-                bookingDetails.checkInDate
-              ).toDateString()}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Check-Out:</strong></td>
-              <td style="padding: 6px 0;">${new Date(
-                bookingDetails.checkOutDate
-              ).toDateString()}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Guests:</strong></td>
-              <td style="padding: 6px 0;">${bookingDetails.guests}</td>
-            </tr>
-            <tr>
-              <td style="padding: 6px 0; color: #6b7280;"><strong>Total Price:</strong></td>
-              <td style="padding: 6px 0; color: #16a34a; font-weight: bold;">${
-                bookingDetails.totalPrice
-              } VND</td>
+              <td style="vertical-align: top; padding-right: 10px; border-right: 1px solid #e5e7eb;">
+                <h3 style="color: #111827; margin-top: 0; margin-bottom: 12px;">👤 User Info</h3>
+                <p><strong>Name:</strong> ${bookingDetails.userName || "Guest"}</p>
+              </td>
+              <td style="vertical-align: top; padding-left: 10px;">
+                <h3 style="color: #111827; margin-top: 0; margin-bottom: 12px;">🏨 Booking Info</h3>
+                <p><strong>Room:</strong> ${bookingDetails.roomName}</p>
+                <p><strong>Address:</strong> ${bookingDetails.location || "Not specified"}</p>
+                <p><strong>Phone:</strong> ${bookingDetails.phone || "N/A"}</p>
+                <p><strong>Check-in:</strong> ${new Date(bookingDetails.checkInDate).toDateString()}</p>
+                <p><strong>Check-out:</strong> ${new Date(bookingDetails.checkOutDate).toDateString()}</p>
+                <hr/>
+                <p><strong>Total:</strong> ${bookingDetails.totalPrice + (bookingDetails.discountAmount || 0)} VND</p>
+                ${bookingDetails.voucherCode ? `<p><strong>Discount (${bookingDetails.voucherCode}):</strong> -${bookingDetails.discountAmount} VND</p>` : ''}
+                <p><strong>Total Price:</strong> ${bookingDetails.totalPrice} VND</p>
+              </td>
             </tr>
           </table>
         </div>

@@ -4,6 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --promo-badge-height: 0px;
   --background: oklch(1 0 0); /* #ffffff - Main background */
   --foreground: oklch(0.345 0.004 247.858); /* #475569 - Primary text color */
   --card: oklch(0.961 0.003 247.858); /* #f1f5f9 - Background for cards */
