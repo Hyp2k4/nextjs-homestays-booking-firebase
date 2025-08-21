@@ -11,13 +11,20 @@ export interface Message {
 
 export interface Chat {
   id: string
-  bookingId: string
-  guestId: string
-  hostId: string
-  propertyId: string
-  propertyName: string
+  participants: string[]
+  participantDetails: {
+    [key: string]: {
+      name: string
+      avatar: string
+    }
+  }
+  bookingId?: string
+  guestId?: string
+  hostId?: string
+  propertyId?: string
+  propertyName?: string
   lastMessage?: Message
-  unreadCount: number
+  unreadCount?: number
   createdAt: Date
   updatedAt: Date
 }

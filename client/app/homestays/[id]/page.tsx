@@ -31,6 +31,7 @@ import { ReviewForm } from "@/components/review-form"
 import { ReviewService } from "@/lib/review-service"
 import type { Review } from "@/types/review"
 import { ReviewsList } from "@/components/reviews-list"
+import { formatPrice, formatPhoneNumber } from "@/lib/utils"
 
 export default function HomestayDetailPage() {
   const params = useParams()
@@ -77,14 +78,6 @@ export default function HomestayDetailPage() {
         <Footer />
       </div>
     )
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(price)
   }
 
   const getAmenityIcon = (amenity: string) => {
@@ -186,7 +179,7 @@ export default function HomestayDetailPage() {
                   <h2 className="font-serif font-semibold text-xl mb-2">Homestay được quản lý bởi {property.hostName}</h2>
                   <div className="flex items-center gap-4 text-muted-foreground">
                     <p className="text-muted-foreground">Email: {property.hostEmail}</p>
-                    <p className="text-muted-foreground">Phone: {property.hostPhone}</p>
+                    <p className="text-muted-foreground">Phone: {property.hostPhone ? formatPhoneNumber(property.hostPhone) : "N/A"}</p>
                     <span className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
                       {property.maxGuests} khách

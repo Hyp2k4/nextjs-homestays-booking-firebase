@@ -10,19 +10,19 @@
   --card-foreground: oklch(0.345 0.004 247.858); /* #475569 - Text color for cards */
   --popover: oklch(1 0 0); /* #ffffff - Background for popovers */
   --popover-foreground: oklch(0.345 0.004 247.858); /* #475569 - Text color for popovers */
-  --primary: oklch(0.459 0.136 166.014); /* #059669 - Primary action color (emerald-600) */
+  --primary: oklch(0.628 0.183 264.376); /* #3b82f6 - New primary color (blue-500) */
   --primary-foreground: oklch(1 0 0); /* #ffffff - Text color for primary actions */
-  --secondary: oklch(0.549 0.15 166.014); /* #10b981 - Secondary accent color (emerald-500) */
+  --secondary: oklch(0.686 0.16 264.376); /* #60a5fa - New secondary color (blue-400) */
   --secondary-foreground: oklch(1 0 0); /* #ffffff - Text color for secondary actions */
   --muted: oklch(0.961 0.003 247.858); /* #f1f5f9 - Muted background */
   --muted-foreground: oklch(0.394 0.006 247.858); /* #4b5563 - Muted text color */
-  --accent: oklch(0.549 0.15 166.014); /* #10b981 - Accent color for highlights */
+  --accent: oklch(0.686 0.16 264.376); /* #60a5fa - New accent color */
   --accent-foreground: oklch(1 0 0); /* #ffffff - Text color for accents */
   --destructive: oklch(0.577 0.245 27.325); /* #dc2626 - Color for destructive actions */
   --destructive-foreground: oklch(1 0 0); /* #ffffff - Text color for destructive actions */
   --border: oklch(0.922 0.003 247.858); /* #e5e7eb - Border color */
   --input: oklch(0.98 0.002 247.858); /* #f9fafb - Input field background */
-  --ring: oklch(0.549 0.15 166.014 / 0.5); /* Ring color for focus states */
+  --ring: oklch(0.628 0.183 264.376 / 0.5); /* New ring color */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -127,4 +127,36 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+    @keyframes rotate {
+        0% {
+            transform: rotate(70deg);
+        }
+
+        50% {
+            transform: rotate(100deg);
+        }
+
+        100% {
+            transform: rotate(70deg);
+        }
+    }
+
+    .rainbow::before {
+        content: '';
+        position: absolute;
+        z-index: -2;
+        left: -50%;
+        top: -50%;
+        width: 200%;
+        height: 200%;
+        background-position: 100% 50%;
+        background-repeat: no-repeat;
+        background-size: 50% 30%;
+        filter: blur(6px);
+        background-image: linear-gradient(var(--rainbow-color, #FFF));
+        animation: rotate 4s ease-in-out infinite;
+    }
 }

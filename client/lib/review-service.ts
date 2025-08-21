@@ -10,8 +10,13 @@ import {
   updateDoc,
   increment,
   runTransaction,
+  arrayUnion,
+  arrayRemove,
+  getDoc,
+  onSnapshot,
+  orderBy,
 } from "firebase/firestore"
-import type { Review } from "@/types/review"
+import type { Review, Reply } from "@/types/review"
 
 export const ReviewService = {
   async addReview(review: Omit<Review, "id" | "createdAt">): Promise<string> {
@@ -22,7 +27,7 @@ export const ReviewService = {
     })
 
     // Update property's average rating
-    const propertyRef = doc(db, "homestays", review.propertyId)
+    const propertyRef = doc(db, "properties", review.propertyId)
     await runTransaction(db, async (transaction) => {
       const propertyDoc = await transaction.get(propertyRef)
       if (!propertyDoc.exists()) {
@@ -54,5 +59,63 @@ export const ReviewService = {
           ...doc.data(),
         } as Review),
     )
+  },
+
+  listenForReviews(propertyId: string, callback: (reviews: Review[]) => void) {
+    const reviewCollection = collection(db, "reviews")
+    const q = query(
+      reviewCollection,
+      where("propertyId", "==", propertyId),
+      orderBy("createdAt", "desc"),
+    )
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const reviews = querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as Review),
+      )
+      callback(reviews)
+    })
+
+    return unsubscribe
+  },
+
+  async addReplyToReview(reviewId: string, replyData: Omit<Reply, "id" | "createdAt">): Promise<void> {
+    const reviewRef = doc(db, "reviews", reviewId)
+    const newReply = {
+      ...replyData,
+      id: doc(collection(db, "dummy_replies")).id, // Generate a new unique ID
+      createdAt: new Date(),
+    }
+    await updateDoc(reviewRef, {
+      replies: arrayUnion(newReply),
+    })
+  },
+
+  async toggleReviewLike(reviewId: string, userId: string): Promise<void> {
+    const reviewRef = doc(db, "reviews", reviewId)
+    const reviewSnap = await getDoc(reviewRef)
+
+    if (reviewSnap.exists()) {
+      const reviewData = reviewSnap.data()
+      const likedBy = reviewData.likedBy || []
+
+      if (likedBy.includes(userId)) {
+        // User has liked, so unlike
+        await updateDoc(reviewRef, {
+          likedBy: arrayRemove(userId),
+        })
+      } else {
+        // User has not liked, so like
+        await updateDoc(reviewRef, {
+          likedBy: arrayUnion(userId),
+        })
+      }
+    } else {
+      throw new Error("Review not found")
+    }
   },
 }

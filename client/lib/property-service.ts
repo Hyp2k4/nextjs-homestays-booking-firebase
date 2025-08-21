@@ -213,4 +213,61 @@ export const PropertyService = {
       return [];
     }
   },
+
+  async getSuggestedProperties(): Promise<Property[]> {
+    try {
+      const propertiesRef = collection(db, "homestays");
+      const q = query(
+        propertiesRef,
+        where("rating.average", ">=", 4),
+        limit(6)
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as Property)
+      );
+    } catch (error) {
+      console.error("Error fetching suggested properties:", error);
+      return [];
+    }
+  },
+
+  async getSuggestedRooms(): Promise<Room[]> {
+    try {
+      const homestaysRef = collection(db, "homestays");
+      const q = query(
+        homestaysRef,
+        where("rating.average", ">=", 4),
+        limit(6)
+      );
+      const querySnapshot = await getDocs(q);
+      const homestayIds = querySnapshot.docs.map((doc) => doc.id);
+
+      if (homestayIds.length === 0) {
+        return [];
+      }
+
+      const roomsRef = collection(db, "rooms");
+      const roomsQuery = query(
+        roomsRef,
+        where("homestayId", "in", homestayIds),
+        limit(6)
+      );
+      const roomsSnapshot = await getDocs(roomsQuery);
+      return roomsSnapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as Room)
+      );
+    } catch (error) {
+      console.error("Error fetching suggested rooms:", error);
+      return [];
+    }
+  },
 };

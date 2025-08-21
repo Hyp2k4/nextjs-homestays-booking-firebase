@@ -16,16 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { format } from "date-fns"
 import { Bed, Bath, Users, Home, User, Wallet, Calendar, Wifi, Car, Utensils, Tv, Snowflake } from "lucide-react"
 import Image from "next/image"
+import { formatPrice, formatPhoneNumber } from "@/lib/utils"
 
 export function HomestayDetailModal({ homestay, host, rooms, bookings, revenue, isOpen, onClose }: any) {
   if (!homestay) return null
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price)
-  }
 
   const amenityIcons: { [key: string]: React.ReactNode } = {
     wifi: <Wifi className="w-4 h-4" />,
@@ -123,7 +117,7 @@ export function HomestayDetailModal({ homestay, host, rooms, bookings, revenue, 
                   <div>
                     <p className="font-semibold text-xl">{host?.name}</p>
                     <p className="text-sm text-gray-500">{host?.email}</p>
-                    <p className="text-sm text-gray-500">{host?.phone}</p>
+                    <p className="text-sm text-gray-500">{host?.phone ? formatPhoneNumber(host.phone) : "N/A"}</p>
                   </div>
                 </div>
               </CardContent>

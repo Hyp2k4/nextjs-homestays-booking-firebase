@@ -59,7 +59,7 @@ export default function AllHomestaysPage() {
     };
 
     const handlePropertyClick = (id: string) => {
-        router.push(`/property/${id}`)
+        router.push(`/homestay/${id}`)
     }
 
     const handleWishlist = (e: React.MouseEvent, id: string) => {

@@ -149,7 +149,7 @@ export function ProfileForm() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 m-4">
                   <User className="h-5 w-5" />
                   Thông tin cá nhân
                 </CardTitle>
@@ -306,7 +306,7 @@ export function ProfileForm() {
         {/* Security Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 m-4">
               <Shield className="h-5 w-5" />
               Bảo mật
             </CardTitle>

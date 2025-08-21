@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { RainbowButton } from "@/components/ui/rainbow-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -113,16 +114,16 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }: LoginModalPr
 
           {error && <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">{error}</div>}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <RainbowButton type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
-              <>
+              <div className="flex items-center justify-center">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Đang đăng nhập...
-              </>
+              </div>
             ) : (
               "Đăng nhập"
             )}
-          </Button>
+          </RainbowButton>
         </form>
 
         <div className="text-center text-sm text-muted-foreground">

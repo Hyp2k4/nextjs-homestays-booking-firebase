@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import type { Chat } from "@/types/chat"
 import { chatService } from "@/lib/chat-service"
 import { useAuth } from "@/contexts/auth-context"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { vi } from "date-fns/locale"
@@ -21,15 +21,11 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
   useEffect(() => {
     if (!user) return
 
-    const userChats = chatService.getUserChats(user.id)
-    setChats(userChats)
-
-    const unsubscribe = chatService.subscribe((updatedChats) => {
-      const userChats = chatService.getUserChats(user.id)
-      setChats(userChats)
+    const unsubscribe = chatService.subscribeToUserChats(user.id, (updatedChats) => {
+      setChats(updatedChats)
     })
 
-    return unsubscribe
+    return () => unsubscribe()
   }, [user])
 
   if (!user) return null
@@ -48,8 +44,10 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
         ) : (
           <div className="divide-y">
             {chats.map((chat) => {
-              const isHost = user.role === "host"
-              const otherPartyName = isHost ? "Khách hàng" : "Chủ nhà"
+              const otherParticipantId = chat.participants.find((p) => p !== user.id)
+              const otherParticipant = otherParticipantId
+                ? chat.participantDetails[otherParticipantId]
+                : null
               const isSelected = selectedChatId === chat.id
 
               return (
@@ -62,19 +60,20 @@ export function ChatList({ onChatSelect, selectedChatId }: ChatListProps) {
                 >
                   <div className="flex items-start gap-3">
                     <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-emerald-100 text-emerald-700">
-                        {otherPartyName.charAt(0)}
+                      <AvatarImage src={otherParticipant?.avatar} />
+                      <AvatarFallback>
+                        {otherParticipant?.name?.[0] || "?"}
                       </AvatarFallback>
                     </Avatar>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium text-sm truncate">{otherPartyName}</h3>
-                        {chat.unreadCount > 0 && (
+                        <h3 className="font-medium text-sm truncate">{otherParticipant?.name || "User"}</h3>
+                        {chat.unreadCount && chat.unreadCount > 0 ? (
                           <Badge variant="destructive" className="text-xs">
                             {chat.unreadCount}
                           </Badge>
-                        )}
+                        ) : null}
                       </div>
 
                       <p className="text-xs text-gray-600 mb-1 truncate">{chat.propertyName}</p>

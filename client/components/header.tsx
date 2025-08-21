@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { RainbowButton } from "@/components/ui/rainbow-button"
+import { Menu, Heart } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { LoginModal } from "@/components/auth/login-modal"
 import { RegisterModal } from "@/components/auth/register-modal"
 import { UserMenu } from "@/components/auth/user-menu"
 import { HomestayRegistrationModal } from "@/components/homestay-registration-modal"
+import { WishlistModal } from "@/components/wishlist-modal"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 
@@ -16,6 +18,7 @@ export function Header() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [showWishlistModal, setShowWishlistModal] = useState(false)
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -94,6 +97,22 @@ export function Header() {
 
             {/* Auth Section */}
             <div className="flex items-center space-x-4">
+              {isAuthenticated && (
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowWishlistModal(true)}
+                  >
+                    <Heart className="h-5 w-5" />
+                  </Button>
+                  {user?.roomWishlist && user.roomWishlist.length > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                      {user.roomWishlist.length}
+                    </span>
+                  )}
+                </div>
+              )}
               {isAuthenticated ? (
                 <UserMenu />
               ) : (
@@ -106,13 +125,12 @@ export function Header() {
                   >
                     Đăng nhập
                   </Button>
-                  <Button
-                    size="sm"
+                  <RainbowButton
                     className="text-sm font-medium"
                     onClick={() => setShowRegisterModal(true)}
                   >
                     Đăng ký
-                  </Button>
+                  </RainbowButton>
                 </>
               )}
               <Button
@@ -218,6 +236,10 @@ export function Header() {
         isOpen={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
         onSwitchToLogin={handleSwitchToLogin}
+      />
+      <WishlistModal
+        isOpen={showWishlistModal}
+        onClose={() => setShowWishlistModal(false)}
       />
     </>
   )

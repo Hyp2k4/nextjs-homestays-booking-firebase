@@ -4,6 +4,17 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { RainbowButton } from "@/components/ui/rainbow-button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Header } from "@/components/header"
@@ -14,10 +25,12 @@ import { UserService } from "@/lib/user-service"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import type { Room } from "@/types/property"
+import type { RoomBookingData } from "@/types/booking"
 import { ReviewForm } from "@/components/review-form"
 import { ReviewService } from "@/lib/review-service"
 import type { Review } from "@/types/review"
 import { ReviewsList } from "@/components/reviews-list"
+import { formatPrice, formatPhoneNumber } from "@/lib/utils"
 import {
   Star,
   MapPin,
@@ -41,9 +54,16 @@ import {
   ParkingCircle,
   Mountain,
   Waves,
+  MessageSquare,
 } from "lucide-react"
+import { SuggestedProperties } from "@/components/suggested-properties"
+import { useIsDesktop } from "@/hooks/use-desktop"
+import { chatService } from "@/lib/chat-service"
+import type { Chat } from "@/types/chat"
+import { ChatWindow } from "@/components/chat/chat-window"
 
 export default function RoomDetailPage() {
+  const isDesktop = useIsDesktop()
   const params = useParams()
   const router = useRouter()
   const [room, setRoom] = useState<any | null>(null)
@@ -57,15 +77,50 @@ export default function RoomDetailPage() {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
   const [availabilityChecked, setAvailabilityChecked] = useState(false)
   const [guestEmail, setGuestEmail] = useState("")
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, toggleRoomWishlist } = useAuth()
   const [reviews, setReviews] = useState<Review[]>([])
+  const [isInWishlist, setIsInWishlist] = useState(
+    user?.roomWishlist?.includes(params?.id as string) ?? false,
+  )
+  const [activeChat, setActiveChat] = useState<Chat | null>(null)
 
-  const fetchReviews = async (roomId: string) => {
-    const fetchedReviews = await ReviewService.getReviewsForProperty(roomId)
-    setReviews(fetchedReviews)
+  useEffect(() => {
+    setIsInWishlist(user?.roomWishlist?.includes(params?.id as string) ?? false)
+  }, [user?.roomWishlist, params?.id])
+
+  const handleToggleWishlist = async () => {
+    const roomId = params?.id as string
+    console.log("Toggling wishlist for room:", roomId);
+    if (!user || !toggleRoomWishlist) {
+      console.log("User not logged in or toggle function not available.");
+      toast.error("Please log in to add rooms to your wishlist.")
+      return
+    }
+
+    setIsInWishlist(!isInWishlist) // Optimistic update
+    const result = await toggleRoomWishlist(roomId)
+    console.log("Wishlist toggle result:", result);
+    if (!result.success) {
+      setIsInWishlist(isInWishlist) // Revert on error
+      toast.error(result.error || "Failed to update wishlist.")
+    } else {
+      toast.success(
+        result.inWishlist
+          ? "Added to your wishlist!"
+          : "Removed from your wishlist.",
+      )
+    }
   }
 
   useEffect(() => {
+    const id = params?.id as string
+    if (!id) return
+
+    // Set up a real-time listener for reviews
+    const unsubscribe = ReviewService.listenForReviews(id, (updatedReviews) => {
+      setReviews(updatedReviews)
+    })
+
     const run = async () => {
       const id = params?.id
       if (!id) {
@@ -76,9 +131,6 @@ export default function RoomDetailPage() {
       try {
         const { room: roomData, homestay: homestayData } = await PropertyService.getRoomById(id as string)
         setRoom(roomData)
-        if (roomData) {
-          fetchReviews(roomData.id)
-        }
         setHomestay(homestayData)
         if (homestayData?.hostId) {
           const hostData = await UserService.getUserById(homestayData.hostId)
@@ -92,9 +144,12 @@ export default function RoomDetailPage() {
       }
     }
     run()
+
+    // Cleanup listener on component unmount
+    return () => unsubscribe()
   }, [params?.id])
 
-  if (loading) {
+  if (loading || isDesktop === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary" />
@@ -107,25 +162,17 @@ export default function RoomDetailPage() {
       <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="font-serif font-bold text-2xl mb-4">Không tìm thấy phòng</h1>
-            <Button onClick={() => window.history.back()}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại
-            </Button>
-          </div>
+        <div className="text-center">
+          <h1 className="font-serif font-bold text-2xl mb-4">Không tìm thấy phòng</h1>
+          <RainbowButton onClick={() => window.history.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Quay lại
+          </RainbowButton>
+        </div>
         </div>
         <Footer />
       </div>
     )
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(price)
   }
 
   const amenityMap: { [key: string]: { name: string; icon: React.ElementType } } = {
@@ -156,66 +203,93 @@ export default function RoomDetailPage() {
     }
   }
 
+  const handleChatWithHost = async () => {
+    if (!user) {
+      toast.error("Please log in to chat with the host.")
+      return
+    }
+    if (!host) {
+      toast.error("Host information is not available.")
+      return
+    }
+    if (user.id === host.id) {
+      toast.info("You cannot start a chat with yourself.")
+      return
+    }
+
+    const chat = await chatService.findOrCreateChat(
+      user.id,
+      user.name || "Guest",
+      user.avatar || "",
+      host.id,
+      host.name || "Host",
+      host.avatar || "",
+    )
+
+    if (chat) {
+      setActiveChat(chat)
+    } else {
+      toast.error("Could not start chat. Please try again.")
+    }
+  }
+
   const handleBookNow = async () => {
     if (!checkIn || !checkOut) {
       toast.error("Vui lòng chọn ngày nhận và trả phòng.")
       return
     }
-
-    if (!isAuthenticated && !guestEmail) {
-      toast.error("Vui lòng nhập email của bạn để tiếp tục.")
+    if (!user) {
+      toast.error("Please log in to book a room.")
       return
     }
 
     setLoading(true)
     try {
-      const totalNights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))
-      const total = room.pricePerNight * totalNights + 50000
-
+      const totalNights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
       const bookingData = {
+        userId: user.id,
         roomId: room.id,
-        checkInDate: checkIn,
-        checkOutDate: checkOut,
+        homestayId: room.homestayId,
+        checkInDate: new Date(checkIn),
+        checkOutDate: new Date(checkOut),
         guests,
-        totalPrice: total,
-        status: "unpaid", // Set status to unpaid
-        user: {
-          uid: user?.id || "guest",
-          email: user?.email || guestEmail,
-          displayName: user?.name || "Guest",
-        },
-        guestInfo: {
-          email: user?.email || guestEmail,
-          name: user?.name || "Guest",
-        },
-        roomData: {
-          homestay: {
-            name: homestay?.name,
-            address: homestay?.address,
-          },
-          roomName: room.roomName,
-        },
-      }
+        totalPrice: room.pricePerNight * totalNights,
+        status: "pending" as const,
+        roomName: room.roomName,
+        totalNights: totalNights,
+        pricePerNight: room.pricePerNight,
+        hostId: homestay.hostId,
+      };
+      
+      const result = await BookingService.createRoomBooking(bookingData, { name: user.name, email: user.email }, room);
 
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bookingData),
-      })
+      if (result.success && result.bookingId) {
+        toast.success("Booking successful! Sending confirmation email...");
+        
+        // Send email in the background
+        fetch("/api/send-booking-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: user.email,
+            bookingId: result.bookingId,
+            bookingDetails: {
+              roomName: room.roomName,
+              checkInDate: bookingData.checkInDate,
+              checkOutDate: bookingData.checkOutDate,
+            },
+          }),
+        }).catch(err => console.error("Failed to send email:", err));
 
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success("Yêu cầu đặt phòng đã được gửi! Vui lòng chờ xác nhận.")
-        router.push("/bookings")
+        router.push("/bookings");
       } else {
-        toast.error(result.message || "Có lỗi xảy ra khi đặt phòng.")
+        toast.error(result.error || "Booking failed. Please try again.");
       }
     } catch (error) {
-      console.error("Booking failed:", error)
-      toast.error("Có lỗi xảy ra khi đặt phòng.")
+      console.error("Booking failed:", error);
+      toast.error("Booking failed. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -223,7 +297,7 @@ export default function RoomDetailPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className={`container mx-auto px-4 py-8 ${!isDesktop ? "pb-24" : ""}`}>
         {/* Back Button */}
         <Button variant="ghost" className="mb-4" onClick={() => window.history.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -236,11 +310,6 @@ export default function RoomDetailPage() {
             <h1 className="font-serif font-bold text-3xl text-foreground mb-2">{room.roomName}</h1>
             <div className="flex items-center gap-4 text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{room.rating?.average}</span>
-                <span>({room.rating?.count} đánh giá)</span>
-              </div>
-              <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
                 <span>{homestay?.address}</span>
               </div>
@@ -251,16 +320,22 @@ export default function RoomDetailPage() {
               <Share className="h-4 w-4 mr-2" />
               Chia sẻ
             </Button>
-            <Button variant="outline" size="sm">
-              <Heart className="h-4 w-4 mr-2" />
-              Yêu thích
-            </Button>
+            {user && (
+              <Button variant="outline" size="sm" onClick={handleToggleWishlist} className="hover:bg-transparent">
+                <Heart
+                  className={`h-4 w-4 mr-2 ${
+                    isInWishlist ? "text-red-500 fill-red-500" : ""
+                  }`}
+                />
+                {isInWishlist ? "Đã yêu thích" : "Yêu thích"}
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className={isDesktop ? "grid grid-cols-1 xl:grid-cols-3 gap-8" : ""}>
           {/* Left Column - Images and Details */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className={isDesktop ? "xl:col-span-2 space-y-8" : "space-y-8"}>
             {/* Image Gallery */}
             <div className="space-y-4">
               <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
@@ -279,9 +354,8 @@ export default function RoomDetailPage() {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`relative aspect-square rounded-md overflow-hidden ${
-                      index === currentImageIndex ? "ring-2 ring-primary" : ""
-                    }`}
+                    className={`relative aspect-square rounded-md overflow-hidden ${index === currentImageIndex ? "ring-2 ring-primary" : ""
+                      }`}
                   >
                     <Image
                       src={image || "/placeholder.svg"}
@@ -310,10 +384,6 @@ export default function RoomDetailPage() {
                     </span>
                   </div>
                 </div>
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={host?.avatarUrl || "/placeholder.svg"} alt={host?.name} />
-                  <AvatarFallback>{host?.name?.[0]}</AvatarFallback>
-                </Avatar>
               </div>
 
               <div className="border-t border-border pt-6">
@@ -344,151 +414,306 @@ export default function RoomDetailPage() {
               {host && (
                 <div className="border-t border-border pt-6">
                   <h3 className="font-semibold text-lg mb-4">Thông tin chủ nhà</h3>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={host.avatar || "/placeholder.svg"} alt={host.name} />
-                      <AvatarFallback>{host.name?.[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-semibold">{host.name}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        {host.email}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        {host.phone || "Chưa cập nhật"}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={host.avatar || "/placeholder.svg"} alt={host.name} />
+                        <AvatarFallback>{host.name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold">{host.name}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          {host.email}
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          {host.phone ? formatPhoneNumber(host.phone) : "Chưa cập nhật"}
+                        </div>
                       </div>
                     </div>
+                    {user && user.id !== host.id && (
+                      <Button onClick={handleChatWithHost}>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Chat với host
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
 
               <div className="border-t border-border pt-6">
-                <h3 className="font-semibold text-lg mb-3">Đánh giá</h3>
-                <ReviewsList reviews={reviews} loading={loading} />
+                <SuggestedProperties type="room" />
               </div>
 
               <div className="border-t border-border pt-6">
-                <ReviewForm propertyId={room.id} onReviewSubmit={() => fetchReviews(room.id)} />
+                <h3 className="font-semibold text-lg mb-3">Đánh giá</h3>
+                <ReviewsList reviews={reviews} loading={loading} hostId={homestay?.hostId} />
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <ReviewForm
+                  propertyId={room.homestayId}
+                  roomId={room.id}
+                  onReviewSubmit={() => {
+                    // No need to manually refetch, listener will handle it
+                  }}
+                />
               </div>
             </div>
           </div>
 
           {/* Right Column - Booking Card */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-24">
-              <CardContent className="p-6 space-y-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">{formatPrice(room.pricePerNight)}</div>
-                  <div className="text-sm text-muted-foreground">/ đêm</div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-sm font-medium">Nhận phòng</label>
-                      <input
-                        type="date"
-                        value={checkIn}
-                        onChange={(e) => setCheckIn(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
-                        min={new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Trả phòng</label>
-                      <input
-                        type="date"
-                        value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
-                        className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
-                        min={checkIn || new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
+          {isDesktop && (
+            <div className="xl:col-span-1">
+              <Card className="sticky top-24">
+                <CardContent className="p-6 space-y-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">{formatPrice(room.pricePerNight)}</div>
+                    <div className="text-sm text-muted-foreground">/ đêm</div>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium">Số khách</label>
-                    <input
-                      type="number"
-                      value={guests}
-                      onChange={(e) => setGuests(Math.min(10, Number.parseInt(e.target.value)))}
-                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
-                      min={1}
-                      max={10}
-                    />
-                  </div>
-                  {!isAuthenticated && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-sm font-medium">Nhận phòng</label>
+                        <input
+                          type="date"
+                          value={checkIn}
+                          onChange={(e) => setCheckIn(e.target.value)}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                          min={new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Trả phòng</label>
+                        <input
+                          type="date"
+                          value={checkOut}
+                          onChange={(e) => setCheckOut(e.target.value)}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                          min={checkIn || new Date().toISOString().split("T")[0]}
+                        />
+                      </div>
+                    </div>
+
                     <div>
-                      <label className="text-sm font-medium">Email</label>
+                      <label className="text-sm font-medium">Số khách</label>
                       <input
-                        type="email"
-                        value={guestEmail}
-                        onChange={(e) => setGuestEmail(e.target.value)}
+                        type="number"
+                        value={guests}
+                        onChange={(e) => setGuests(Math.min(10, Number.parseInt(e.target.value)))}
                         className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
-                        placeholder="your.email@example.com"
+                        min={1}
+                        max={10}
                       />
                     </div>
+                    {!isAuthenticated && (
+                      <div>
+                        <label className="text-sm font-medium">Email</label>
+                        <input
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                          placeholder="your.email@example.com"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {!availabilityChecked || !isAvailable ? (
+                    <RainbowButton className="w-full" onClick={handleCheckAvailability}>
+                      <div className="flex items-center justify-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Check Available
+                      </div>
+                    </RainbowButton>
+                  ) : (
+                    <RainbowButton className="w-full" onClick={handleBookNow}>
+                      <div className="flex items-center justify-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Book Now
+                      </div>
+                    </RainbowButton>
                   )}
-                </div>
 
-                {!availabilityChecked || !isAvailable ? (
-                  <Button className="w-full" size="lg" onClick={handleCheckAvailability}>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Check Available
-                  </Button>
-                ) : (
-                  <Button className="w-full" size="lg" onClick={handleBookNow}>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Book Now
-                  </Button>
-                )}
+                  <div className="text-center text-sm text-muted-foreground">Bạn chưa bị tính phí</div>
 
-                <div className="text-center text-sm text-muted-foreground">Bạn chưa bị tính phí</div>
-
-                {checkIn && checkOut && (
-                  <div className="border-t border-border pt-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>
-                        Giá phòng x{" "}
-                        {Math.ceil(
-                          (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
-                        )}{" "}
-                        đêm
-                      </span>
-                      <span>
-                        {formatPrice(
-                          room.pricePerNight *
+                  {checkIn && checkOut && (
+                    <div className="border-t border-border pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>
+                          Giá phòng x{" "}
+                          {Math.ceil(
+                            (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
+                          )}{" "}
+                          đêm
+                        </span>
+                        <span>
+                          {formatPrice(
+                            room.pricePerNight *
                             Math.ceil(
                               (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
                             ),
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Phí dịch vụ</span>
-                      <span>{formatPrice(50000)}</span>
-                    </div>
-                    <div className="border-t border-border pt-2 flex justify-between font-semibold">
-                      <span>Tổng cộng</span>
-                      <span>
-                        {formatPrice(
-                          room.pricePerNight *
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Phí dịch vụ</span>
+                        <span>{formatPrice(50000)}</span>
+                      </div>
+                      <div className="border-t border-border pt-2 flex justify-between font-semibold">
+                        <span>Tổng cộng</span>
+                        <span>
+                          {formatPrice(
+                            room.pricePerNight *
                             Math.ceil(
                               (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
                             ) +
                             50000,
-                        )}
-                      </span>
+                          )}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </main>
+
+      {/* Mobile Booking Drawer */}
+      {!isDesktop && (
+        <Drawer>
+          <DrawerTrigger asChild>
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 shadow-lg z-10">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-lg">{formatPrice(room.pricePerNight)}</div>
+                  <div className="text-sm text-muted-foreground">/ đêm</div>
+                </div>
+                <RainbowButton>Đặt phòng</RainbowButton>
+              </div>
+            </div>
+          </DrawerTrigger>
+          <DrawerContent className="p-4">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Thông tin đặt phòng</DrawerTitle>
+              <DrawerDescription>Chọn ngày và số lượng khách.</DrawerDescription>
+            </DrawerHeader>
+
+            <div className="space-y-3 px-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-sm font-medium">Nhận phòng</label>
+                  <input
+                    type="date"
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Trả phòng</label>
+                  <input
+                    type="date"
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                    min={checkIn || new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Số khách</label>
+                <input
+                  type="number"
+                  value={guests}
+                  onChange={(e) => setGuests(Math.min(10, Number.parseInt(e.target.value)))}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                  min={1}
+                  max={10}
+                />
+              </div>
+              {!isAuthenticated && (
+                <div>
+                  <label className="text-sm font-medium">Email</label>
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-sm"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+              )}
+            </div>
+
+            {checkIn && checkOut && (
+              <div className="border-t border-border pt-4 mt-4 space-y-2 px-4">
+                <div className="flex justify-between text-sm">
+                  <span>
+                    Giá phòng x{" "}
+                    {Math.ceil(
+                      (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
+                    )}{" "}
+                    đêm
+                  </span>
+                  <span>
+                    {formatPrice(
+                      room.pricePerNight *
+                      Math.ceil(
+                        (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
+                      ),
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Phí dịch vụ</span>
+                  <span>{formatPrice(50000)}</span>
+                </div>
+                <div className="border-t border-border pt-2 flex justify-between font-semibold">
+                  <span>Tổng cộng</span>
+                  <span>
+                    {formatPrice(
+                      room.pricePerNight *
+                      Math.ceil(
+                        (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24),
+                      ) +
+                      50000,
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <DrawerFooter>
+              {!availabilityChecked || !isAvailable ? (
+                <RainbowButton className="w-full" onClick={handleCheckAvailability}>
+                  Check Available
+                </RainbowButton>
+              ) : (
+                <RainbowButton className="w-full" onClick={handleBookNow}>
+                  Book Now
+                </RainbowButton>
+              )}
+              <DrawerClose asChild>
+                <Button variant="outline">Hủy</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      )}
+
+      {activeChat && (
+        <div className="fixed bottom-4 right-4 z-[60]">
+          <ChatWindow chat={activeChat} onClose={() => setActiveChat(null)} />
+        </div>
+      )}
 
       <Footer />
     </div>

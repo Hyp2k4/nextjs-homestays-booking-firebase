@@ -39,7 +39,8 @@ interface AuthContextType extends AuthState {
   resendEmailVerification: () => Promise<{ success: boolean; error?: string }>
   checkEmailVerification: () => Promise<{ success: boolean; error?: string }>
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
-  toggleWishlist?: (propertyId: string) => Promise<{ success: boolean; inWishlist: boolean; error?: string }>
+  togglePropertyWishlist?: (propertyId: string) => Promise<{ success: boolean; inWishlist: boolean; error?: string }>
+  toggleRoomWishlist?: (roomId: string) => Promise<{ success: boolean; inWishlist: boolean; error?: string }>
   registerHomestay: (homestayData: {
     name: string
     address: string
@@ -71,7 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             createdAt: userData.createdAt || new Date().toISOString(),
             emailVerified: firebaseUser.emailVerified,
             homestayId: userData.homestayId || undefined,
-            wishlist: userData.wishlist || []
+            propertyWishlist: userData.propertyWishlist || [],
+            roomWishlist: userData.roomWishlist || []
           })
         }
       } else {
@@ -382,22 +384,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const toggleWishlist = async (propertyId: string): Promise<{ success: boolean; inWishlist: boolean; error?: string }> => {
+  const togglePropertyWishlist = async (propertyId: string): Promise<{ success: boolean; inWishlist: boolean; error?: string }> => {
     if (!user) return { success: false, inWishlist: false, error: "Bạn cần đăng nhập" }
     try {
-      const currentWishlist = user.wishlist || []
+      const currentWishlist = user.propertyWishlist || []
       const inWishlist = currentWishlist.includes(propertyId)
       const nextWishlist = inWishlist
         ? currentWishlist.filter(id => id !== propertyId)
         : [...currentWishlist, propertyId]
 
-      await updateDoc(doc(db, "users", user.id), { wishlist: nextWishlist })
-      setUser(prev => prev ? { ...prev, wishlist: nextWishlist } : prev)
+      await updateDoc(doc(db, "users", user.id), { propertyWishlist: nextWishlist })
+      setUser(prev => prev ? { ...prev, propertyWishlist: nextWishlist } : prev)
       return { success: true, inWishlist: !inWishlist }
     } catch (error: any) {
-      return { success: false, inWishlist: !!user.wishlist?.includes(propertyId), error: error.message || "Không thể cập nhật wishlist" }
+      return { success: false, inWishlist: !!user.propertyWishlist?.includes(propertyId), error: error.message || "Không thể cập nhật wishlist" }
     }
   }
+
+  const toggleRoomWishlist = async (roomId: string): Promise<{ success: boolean; inWishlist: boolean; error?: string }> => {
+    if (!user) return { success: false, inWishlist: false, error: "Bạn cần đăng nhập" }
+    try {
+      const currentWishlist = user.roomWishlist || []
+      const inWishlist = currentWishlist.includes(roomId)
+      const nextWishlist = inWishlist
+        ? currentWishlist.filter(id => id !== roomId)
+        : [...currentWishlist, roomId]
+
+      await updateDoc(doc(db, "users", user.id), { roomWishlist: nextWishlist })
+      setUser(prev => prev ? { ...prev, roomWishlist: nextWishlist } : prev)
+      return { success: true, inWishlist: !inWishlist }
+    } catch (error: any) {
+      return { success: false, inWishlist: !!user.roomWishlist?.includes(roomId), error: error.message || "Không thể cập nhật wishlist" }
+    }
+  }
+
   const registerHomestay = async (homestayData: {
     name: string;
     address: string;
@@ -471,7 +491,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resendEmailVerification,
     checkEmailVerification,
     resetPassword,
-    toggleWishlist,
+    togglePropertyWishlist,
+    toggleRoomWishlist,
     registerHomestay,
     getHomestay
   }

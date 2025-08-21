@@ -6,6 +6,7 @@ import { Star, MapPin, Users, Bed, Bath, Heart } from "lucide-react"
 import type { Property } from "@/types/property"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
+import { formatPrice } from "@/lib/utils"
 
 interface PropertyCardProps {
   property: Property
@@ -13,13 +14,6 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property }: PropertyCardProps) {
   const { user, toggleWishlist } = useAuth()
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
 
   const getPropertyTypeLabel = (type: string) => {
     const labels = {
@@ -76,7 +70,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </div>
 
           {/* Title */}
-          <Link href={`/property/${property.id}`}>
+          <Link href={`/homestay/${property.id}`}>
             <h3 className="font-serif font-semibold text-lg text-foreground line-clamp-2 group-hover:text-primary transition-colors">
               {property.name}
             </h3>
@@ -106,17 +100,16 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <span className="text-sm text-muted-foreground">({property.rating?.count ?? 0})</span>
             </div>
             <div className="text-right">
-              <div className="font-bold text-lg text-foreground">{formatPrice(property.pricePerNight ?? 0)}</div>
+              <div className="font-bold text-lg text-foreground">
+                Chỉ từ: {formatPrice(property.pricePerNight ?? 0)}
+              </div>
               <div className="text-sm text-muted-foreground">/ đêm</div>
             </div>
           </div>
 
           <div className="flex gap-2">
-            <Link href={`/property/${property.id}`} className="flex-1">
+            <Link href={`/homestay/${property.id}`} className="flex-1">
               <Button className="w-full" variant="outline">View details</Button>
-            </Link>
-            <Link href={`/bookings?propertyId=${property.id}`} className="flex-1">
-              <Button className="w-full">Book now</Button>
             </Link>
           </div>
         </CardContent>

@@ -60,6 +60,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { formatPrice } from "@/lib/utils"
 
 export default function ListRoomPage() {
   const { user, logout } = useAuth()
@@ -147,14 +148,6 @@ export default function ListRoomPage() {
     } catch (error) {
       toast.error("Có lỗi xảy ra khi xóa phòng")
     }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(price)
   }
 
   const getPropertyTypeLabel = (type: string) => {

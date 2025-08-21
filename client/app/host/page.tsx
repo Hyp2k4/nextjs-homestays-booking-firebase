@@ -45,6 +45,7 @@ import {
 } from "lucide-react"
 import { toast } from "react-toastify"
 import Image from "next/image"
+import { formatPrice } from "@/lib/utils"
 
 export default function HostDashboard() {
   const { user, isAuthenticated } = useAuth()
@@ -104,14 +105,6 @@ export default function HostDashboard() {
       console.error("Error loading homestays:", error)
       toast.error("Có lỗi xảy ra khi tải dữ liệu homestay")
     }
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(price)
   }
 
   const formatDate = (dateString: string) => {

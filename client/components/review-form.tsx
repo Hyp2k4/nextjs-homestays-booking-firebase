@@ -9,11 +9,12 @@ import { Star } from "lucide-react"
 import { toast } from "sonner"
 
 interface ReviewFormProps {
-  propertyId: string
+  propertyId: string // This is the homestayId
+  roomId: string
   onReviewSubmit: () => void
 }
 
-export function ReviewForm({ propertyId, onReviewSubmit }: ReviewFormProps) {
+export function ReviewForm({ propertyId, roomId, onReviewSubmit }: ReviewFormProps) {
   const { user } = useAuth()
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState("")
@@ -21,15 +22,21 @@ export function ReviewForm({ propertyId, onReviewSubmit }: ReviewFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || rating === 0 || comment.trim() === "") {
+  if (!user || rating === 0 || comment.trim() === "") {
       toast.error("Please provide a rating and a comment.")
+      return
+    }
+
+    if (user.role === "host") {
+      toast.error("Hosts cannot submit reviews.")
       return
     }
 
     setIsSubmitting(true)
     try {
       await ReviewService.addReview({
-        propertyId,
+        propertyId, // homestayId
+        roomId,
         userId: user.id,
         userName: user.name || "Anonymous",
         userAvatar: user.avatar || undefined,

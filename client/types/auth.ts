@@ -10,7 +10,8 @@ export interface User {
   createdAt: string;
   emailVerified: boolean;
   homestayId?: string;
-  wishlist?: string[];
+  propertyWishlist?: string[];
+  roomWishlist?: string[];
   isActive?: boolean;
 }
 

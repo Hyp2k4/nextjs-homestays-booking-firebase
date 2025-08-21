@@ -9,6 +9,7 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  getDoc,
   type Unsubscribe,
 } from "firebase/firestore"
 import { db } from "./firebase/config"
@@ -220,6 +221,69 @@ class ChatService {
       } as Chat
     } catch (error) {
       console.error("Error creating chat from booking:", error)
+      return null
+    }
+  }
+
+  async findOrCreateChat(
+    userId1: string,
+    userName1: string,
+    userAvatar1: string,
+    userId2: string,
+    userName2: string,
+    userAvatar2: string,
+  ): Promise<Chat | null> {
+    try {
+      // Query to find an existing chat that contains the first user
+      const chatsRef = collection(db, "chats")
+      const q = query(chatsRef, where("participants", "array-contains", userId1))
+
+      const querySnapshot = await getDocs(q)
+      let existingChatDoc = null
+
+      // Client-side filter to find the exact chat with both users
+      for (const doc of querySnapshot.docs) {
+        const participants = doc.data().participants as string[]
+        if (participants.includes(userId2) && participants.length === 2) {
+          existingChatDoc = doc
+          break
+        }
+      }
+
+      if (existingChatDoc) {
+        const chatData = existingChatDoc.data()
+        return {
+          id: existingChatDoc.id,
+          ...chatData,
+          createdAt: chatData.createdAt?.toDate() || new Date(),
+          updatedAt: chatData.updatedAt?.toDate() || new Date(),
+        } as Chat
+      }
+
+      // If no chat exists, create a new one
+      const newChatData = {
+        participants: [userId1, userId2],
+        participantDetails: {
+          [userId1]: { name: userName1, avatar: userAvatar1 || "" },
+          [userId2]: { name: userName2, avatar: userAvatar2 || "" },
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastMessage: null,
+      }
+
+      const docRef = await addDoc(chatsRef, newChatData)
+      const newChatSnap = await getDoc(docRef)
+      const finalChatData = newChatSnap.data()
+
+      return {
+        id: newChatSnap.id,
+        ...finalChatData,
+        createdAt: new Date(), // Use current date as serverTimestamp is not resolved yet
+        updatedAt: new Date(),
+      } as Chat
+    } catch (error) {
+      console.error("Error finding or creating chat:", error)
       return null
     }
   }

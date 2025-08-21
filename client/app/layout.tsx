@@ -4,7 +4,8 @@ import { Open_Sans } from "next/font/google"
 import "./globals.css"
 import "leaflet/dist/leaflet.css"
 import { AuthProvider } from "@/contexts/auth-context"
-import { ToastProvider } from "@/components/toast-provider"
+import { Toaster } from "sonner"
+import { GlobalChatWidget } from "@/components/chat/global-chat-widget"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -39,11 +40,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${openSans.variable} ${playfair.variable} antialiased`}>
+    <html lang="en" className={`${montserrat.variable} ${openSans.variable} ${playfair.variable} antialiased`} suppressHydrationWarning>
       <body className="font-sans">
         <AuthProvider>
-          <ToastProvider />
           {children}
+          <Toaster position="top-right" richColors />
+          <GlobalChatWidget />
         </AuthProvider>
       </body>
     </html>

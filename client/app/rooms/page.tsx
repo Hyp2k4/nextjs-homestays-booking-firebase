@@ -15,9 +15,12 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Heart, MapPin, Home, CheckCircle, XCircle } from "lucide-react"
+import { formatPrice } from "@/lib/utils"
+import { RoomCard } from "@/components/room-card"
+import { motion } from "framer-motion"
 
 export default function RoomsPage() {
-  const { user, toggleWishlist } = useAuth()
+  const { user } = useAuth()
   const [rooms, setRooms] = useState<any[]>([])
   const [homestayById, setHomestayById] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
@@ -38,11 +41,6 @@ export default function RoomsPage() {
     }
     run()
   }, [])
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", minimumFractionDigits: 0 }).format(
-      price || 0
-    )
 
   const filteredRooms = useMemo(() => {
     return rooms.filter((r) => {
@@ -131,76 +129,22 @@ export default function RoomsPage() {
             Không có phòng nào phù hợp.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRooms.map((room) => {
-              const homestay = homestayById[room.homestayId]
-              return (
-                <Card key={room.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <Image
-                      src={room.images?.[0] || "/placeholder.jpg"}
-                      alt={room.roomName || room.roomCode || room.roomType || "Room"}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <Badge variant="secondary">{room.roomType || "Phòng"}</Badge>
-                    </div>
-                    <div className="absolute top-3 right-3 flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="rounded-full h-9 w-9"
-                        onClick={async (e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          if (!toggleWishlist || !homestay) return
-                          await toggleWishlist(homestay.id)
-                        }}
-                      >
-                        <Heart
-                          className={`h-5 w-5 ${user?.wishlist?.includes(homestay?.id) ? "fill-red-500 text-red-500" : ""}`}
-                        />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Home className="h-3 w-3" />
-                        <span>{homestay?.name || "Không rõ Homestay"}</span>
-                      </div>
-                      <Badge variant={room.isActive !== false ? "default" : "secondary"}>
-                        {room.isActive !== false ? "Đang hoạt động" : "Không hoạt động"}
-                      </Badge>
-                    </div>
-
-                    <h3 className="font-serif font-semibold text-lg text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                      {room.roomName || room.roomCode || "Phòng"}
-                    </h3>
-
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">Giá</div>
-                      <div className="text-right">
-                        <div className="font-bold text-lg text-foreground">{formatPrice(room.pricePerNight || 0)}</div>
-                        <div className="text-xs text-muted-foreground">/ đêm</div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Link href={`/room/${room.id}`} className="flex-1">
-                        <Button className="w-full" variant="outline">View details</Button>
-                      </Link>
-                      <Link href={`/bookings?roomId=${room.id}`} className="flex-1">
-                        <Button className="w-full">Book now</Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                },
+              },
+            }}
+          >
+            {filteredRooms.map((room) => (
+              <RoomCard key={room.id} room={room} />
+            ))}
+          </motion.div>
         )}
       </main>
       <Footer />

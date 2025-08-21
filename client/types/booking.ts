@@ -1,5 +1,6 @@
 export interface Booking {
   id: string
+  homestayId?: string
   propertyId?: string
   roomId?: string
   propertyTitle: string
@@ -54,4 +55,19 @@ export interface PaymentResult {
   transactionId?: string
   error?: string
   redirectUrl?: string
+}
+
+export type RoomBookingData = {
+  userId: string;
+  roomId: string;
+  homestayId: string;
+  checkInDate: any;
+  checkOutDate: any;
+  guests: number;
+  totalPrice: number;
+  status: "pending" | "confirmed" | "cancelled" | "completed" | "unpaid" | "paid";
+  roomName?: string;
+  totalNights: number;
+  pricePerNight: number;
+  hostId: string;
 }

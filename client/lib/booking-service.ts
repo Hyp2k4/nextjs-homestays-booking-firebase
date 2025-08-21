@@ -1,6 +1,7 @@
-import { collection, doc, getDocs, getDoc, addDoc, updateDoc, query, where, orderBy } from "firebase/firestore"
+import { collection, doc, getDocs, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp } from "firebase/firestore"
 import { db } from "./firebase/config"
-import type { Booking, BookingRequest, PaymentResult } from "@/types/booking"
+import type { Booking, BookingRequest, PaymentResult, RoomBookingData } from "@/types/booking"
+import { Room } from "@/types/property"
 
 export class BookingService {
   private static collectionName = "bookings"
@@ -112,6 +113,45 @@ export class BookingService {
     }
   }
 
+  static async createRoomBooking(bookingData: RoomBookingData, user: { name: string, email: string }, room: Room): Promise<{ success: boolean; bookingId?: string; error?: string }> {
+    try {
+      let homestayName = "N/A";
+      if (room.homestayId) {
+        const homestayDoc = await getDoc(doc(db, "homestays", room.homestayId));
+        if (homestayDoc.exists()) {
+          homestayName = homestayDoc.data().name || "N/A";
+        }
+      }
+
+      const data = {
+        ...bookingData,
+        userName: user.name,
+        userEmail: user.email,
+        homestayName: homestayName,
+        propertyTitle: homestayName, // For consistency
+        propertyImage: room.images[0] || "",
+        subtotal: bookingData.totalPrice, // Simplified calculation
+        serviceFee: 0, // Simplified
+        guestInfo: { // Dummy data
+          firstName: user.name.split(" ")[0],
+          lastName: user.name.split(" ").slice(1).join(" ") || user.name.split(" ")[0],
+          email: user.email,
+          phone: "",
+        },
+        paymentMethod: "pay_at_homestay", // Default
+        paymentStatus: "pending",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+
+      const docRef = await addDoc(collection(db, this.collectionName), data)
+      return { success: true, bookingId: docRef.id }
+    } catch (error) {
+      console.error("Error creating room booking:", error)
+      return { success: false, error: "Could not create booking." }
+    }
+  }
+
   static async processPayment(bookingId: string, paymentMethod: string): Promise<PaymentResult> {
     try {
       // Simulate payment processing delay
@@ -161,10 +201,18 @@ export class BookingService {
           const roomDoc = await getDoc(doc(db, "rooms", bookingData.roomId))
           if (roomDoc.exists()) {
             const room = roomDoc.data()
+            let homestayName = "N/A";
+            if (room.homestayId) {
+                const homestayDoc = await getDoc(doc(db, "homestays", room.homestayId));
+                if (homestayDoc.exists()) {
+                    homestayName = homestayDoc.data().name || "N/A";
+                }
+            }
             roomData = {
               propertyImage: room.images?.[0] || null,
               roomName: room.roomName,
-              propertyTitle: room.homestayName,
+              propertyTitle: homestayName,
+              homestayName: homestayName,
             }
           }
         }
