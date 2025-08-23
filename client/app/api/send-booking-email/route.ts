@@ -36,19 +36,42 @@ export async function POST(req: Request) {
             <tr>
               <td style="vertical-align: top; padding-right: 10px; border-right: 1px solid #e5e7eb;">
                 <h3 style="color: #111827; margin-top: 0; margin-bottom: 12px;">👤 User Info</h3>
-                <p><strong>Name:</strong> ${bookingDetails.userName || "Guest"}</p>
+                <p><strong>Name:</strong> ${
+                  bookingDetails.userName || "Guest"
+                }</p>
+                <p><strong>Phone:</strong> ${
+                  bookingDetails.phone || "Guest"
+                }</p>
+                <p><strong>Email:</strong> ${
+                  bookingDetails.userEmail || "Guest"
+                }</p>
               </td>
               <td style="vertical-align: top; padding-left: 10px;">
                 <h3 style="color: #111827; margin-top: 0; margin-bottom: 12px;">🏨 Booking Info</h3>
                 <p><strong>Room:</strong> ${bookingDetails.roomName}</p>
-                <p><strong>Address:</strong> ${bookingDetails.location || "Not specified"}</p>
+                <p><strong>Address:</strong> ${
+                  bookingDetails.location || "Not specified"
+                }</p>
                 <p><strong>Phone:</strong> ${bookingDetails.phone || "N/A"}</p>
-                <p><strong>Check-in:</strong> ${new Date(bookingDetails.checkInDate).toDateString()}</p>
-                <p><strong>Check-out:</strong> ${new Date(bookingDetails.checkOutDate).toDateString()}</p>
+                <p><strong>Check-in:</strong> ${new Date(
+                  bookingDetails.checkInDate
+                ).toDateString()}</p>
+                <p><strong>Check-out:</strong> ${new Date(
+                  bookingDetails.checkOutDate
+                ).toDateString()}</p>
                 <hr/>
-                <p><strong>Total:</strong> ${bookingDetails.totalPrice + (bookingDetails.discountAmount || 0)} VND</p>
-                ${bookingDetails.voucherCode ? `<p><strong>Discount (${bookingDetails.voucherCode}):</strong> -${bookingDetails.discountAmount} VND</p>` : ''}
-                <p><strong>Total Price:</strong> ${bookingDetails.totalPrice} VND</p>
+                <p><strong>Total:</strong> ${
+                  bookingDetails.totalPrice +
+                  (bookingDetails.discountAmount || 0)
+                } VND</p>
+                ${
+                  bookingDetails.voucherCode
+                    ? `<p><strong>Discount (${bookingDetails.voucherCode}):</strong> -${bookingDetails.discountAmount} VND</p>`
+                    : ""
+                }
+                <p><strong>Total Price:</strong> ${
+                  bookingDetails.totalPrice
+                } VND</p>
               </td>
             </tr>
           </table>

@@ -301,7 +301,7 @@ export default function AllHomestaysPage() {
                                         className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-100"
                                         onClick={(e) => handleWishlist(e, property.id)}
                                     >
-                                        <Heart className="h-5 w-5" fill={user?.wishlist?.includes(property.id) ? "red" : "none"} />
+                                        <Heart className="h-5 w-5" fill={user?.propertyWishlist?.includes(property.id) ? "red" : "none"} />
                                     </button>
                                     {property.featured && (
                                         <div className="absolute top-3 left-3">

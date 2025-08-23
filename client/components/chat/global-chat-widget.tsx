@@ -44,13 +44,19 @@ export function GlobalChatWidget() {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {isOpen ? (
-        <Card className="w-96 h-[600px] flex flex-col shadow-2xl rounded-xl bg-background border">
+        <Card className="w-96 h-[600px] flex flex-col shadow-2xl rounded-xl bg-background border relative">
+          {/* Nút X để đóng popup */}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
           {activeChat ? (
             <ChatWindow chat={activeChat} onBack={handleBackToList} />
           ) : (
-            <>
-              <ChatList onChatSelect={handleChatSelect} />
-            </>
+            <ChatList onChatSelect={handleChatSelect} />
           )}
         </Card>
       ) : (
@@ -69,6 +75,7 @@ export function GlobalChatWidget() {
           )}
         </Button>
       )}
+
     </div>
   )
 }

@@ -50,10 +50,6 @@ export function UserMenu() {
           <Calendar className="mr-2 h-4 w-4" />
           <span>Bookings</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/my-voucher")}>
-          <Tag className="mr-2 h-4 w-4" />
-          <span>Voucher của tôi</span>
-        </DropdownMenuItem>
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />
           <span>Cài đặt</span>

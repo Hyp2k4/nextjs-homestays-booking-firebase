@@ -97,42 +97,55 @@ export function Header() {
 
             {/* Auth Section */}
             <div className="flex items-center space-x-4">
-              {isAuthenticated && (
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowWishlistModal(true)}
-                  >
-                    <Heart className="h-5 w-5" />
-                  </Button>
-                  {user?.roomWishlist && user.roomWishlist.length > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                      {user.roomWishlist.length}
-                    </span>
-                  )}
-                </div>
-              )}
               {isAuthenticated ? (
-                <UserMenu />
+                <>
+                  {/* Wishlist icon */}
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowWishlistModal(true)}
+                    >
+                      <Heart className="h-5 w-5" />
+                    </Button>
+                    {user?.roomWishlist?.length > 0 && (
+                      <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                        {user.roomWishlist.length}
+                      </span>
+                    )}
+                  </div>
+                  {/* Always show UserMenu on all screens */}
+                  <UserMenu />
+                </>
               ) : (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="hidden md:flex text-sm font-medium"
+                  {/* On desktop: show both login + register */}
+                  <RainbowButton
+                    className="hidden md:inline-flex text-sm font-medium"
                     onClick={() => setShowLoginModal(true)}
                   >
                     Đăng nhập
-                  </Button>
-                  <RainbowButton
-                    className="text-sm font-medium"
+                  </RainbowButton>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hidden md:inline-flex text-sm font-medium"
                     onClick={() => setShowRegisterModal(true)}
                   >
                     Đăng ký
+                  </Button>
+
+                  {/* On mobile: only show login button */}
+                  <RainbowButton
+                    className="md:hidden text-sm font-medium"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    Đăng nhập
                   </RainbowButton>
                 </>
               )}
+
+              {/* Mobile Menu Toggle */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -198,7 +211,6 @@ export function Header() {
                 {!isAuthenticated && (
                   <div className="flex space-x-3 pt-2">
                     <Button
-                      variant="outline"
                       size="sm"
                       className="flex-1 text-sm font-medium"
                       onClick={() => {
@@ -209,6 +221,7 @@ export function Header() {
                       Đăng nhập
                     </Button>
                     <Button
+                      variant="outline"
                       size="sm"
                       className="flex-1 text-sm font-medium"
                       onClick={() => {
