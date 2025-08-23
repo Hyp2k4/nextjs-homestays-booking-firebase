@@ -128,141 +128,173 @@ export default function HomestayDetailPage() {
         </div>
 
         <div className="space-y-8">
-          <div className="space-y-4">
             <div className="relative aspect-[4/3] rounded-lg overflow-hidden">
               <Image
-                src={property.images[currentImageIndex] || "/placeholder.svg"}
+                src={property.images?.[currentImageIndex] || "/placeholder.svg"}
                 alt={`Image of ${property.name}`}
                 fill
                 className="object-cover"
               />
+
+              {/* Hiển thị số thứ tự ảnh - đã sửa lỗi */}
               <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-md text-sm">
-                {currentImageIndex + 1} / {property.images.length}
+                {currentImageIndex + 1} / {property.images?.length || 0}
               </div>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {property.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`relative aspect-square rounded-md overflow-hidden ${index === currentImageIndex ? "ring-2 ring-primary" : ""
-                    }`}
-                >
-                  <Image
-                    src={image || "/placeholder.svg"}
-                    alt={`${property.name} ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-serif font-semibold text-xl mb-2">Homestay của {property.hostName}</h2>
-                <div className="flex items-center gap-4 text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    {property.maxGuests} khách tối đa
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bed className="h-4 w-4" />
-                    {property.bedrooms} Phòng ngủ
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Bath className="h-4 w-4" />
-                    {property.bathrooms} Phòng tắm
-                  </span>
-                </div>
-              </div>
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={property.hostAvatar || "/placeholder.svg"} alt={property.hostName} />
-                <AvatarFallback>{property.hostName?.[0]}</AvatarFallback>
-              </Avatar>
+              {/* Nút chuyển ảnh - chỉ hiển thị nếu có nhiều hơn 1 ảnh */}
+              {property.images && property.images.length > 1 && (
+                <>
+                  <button
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex((prev) =>
+                        prev === 0 ? (property.images?.length || 1) - 1 : prev - 1
+                      );
+                    }}
+                  >
+                    {/* Icon mũi tên trái */}
+                  </button>
+                  <button
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow-md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex((prev) =>
+                        prev === (property.images?.length || 1) - 1 ? 0 : prev + 1
+                      );
+                    }}
+                  >
+                    {/* Icon mũi tên phải */}
+                  </button>
+                </>
+              )}
             </div>
 
-            <div className="border-t border-border pt-6">
-              <h3 className="font-semibold text-lg mb-3">Mô tả</h3>
-              <p className="text-muted-foreground leading-relaxed">{property.description}</p>
-            </div>
-
-            {property.hostName && (
-              <div className="border-t border-border pt-6">
-                <h3 className="font-semibold text-lg mb-3">Thông tin chủ nhà</h3>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={property.hostAvatar || "/placeholder.svg"} alt={property.hostName || ""} />
-                    <AvatarFallback>{property.hostName?.[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">{property.hostName}</p>
-                    <p className="text-sm text-muted-foreground">{property.hostEmail}</p>
-                    <p className="text-sm text-muted-foreground">{property.hostPhone ? formatPhoneNumber(property.hostPhone) : "N/A"}</p>
+            {/* Hiển thị thumbnail - chỉ hiển thị nếu có ảnh */}
+            {property.images && property.images.length > 0 && (
+              <div className="grid grid-cols-4 gap-2 mt-4">
+                {property.images.map((image, index) => (
+                  <div
+                    key={index}
+                    className={`relative aspect-square cursor-pointer rounded-md overflow-hidden border-2 ${currentImageIndex === index ? "border-primary" : "border-transparent"
+                      }`}
+                    onClick={() => setCurrentImageIndex(index)}
+                  >
+                    <Image
+                      src={image || "/placeholder.svg"}
+                      alt={`Thumbnail ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-                </div>
-              </div>
-            )}
-
-            {property.rules && property.rules.length > 0 && (
-              <div className="border-t border-border pt-6">
-                <h3 className="font-semibold text-lg mb-3">Nội quy Homestay</h3>
-                <ul className="list-none space-y-2">
-                  {property.rules.map((rule, index) => (
-                    <li key={index} className="text-muted-foreground">
-                      +) {rule}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="border-t border-border pt-6">
-              <h3 className="font-semibold text-lg mb-3">Các phòng có sẵn</h3>
-              <div className="space-y-4">
-                {rooms.map((room) => (
-                  <Card key={room.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="relative w-32 h-32 aspect-square">
-                        <Image src={room.images[0]} alt={room.roomName} fill className="object-cover rounded-md" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold mb-2">{room.roomName}</h4>
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{room.description}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-primary">
-                            {formatPrice(room.pricePerNight)} / đêm
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {room.capacity} khách
-                          </span>
-                        </div>
-                      </div>
-                      <Button onClick={() => router.push(`/room/${room.id}`)}>
-                        Xem ngay
-                      </Button>
-                    </CardContent>
-                  </Card>
                 ))}
               </div>
-            </div>
+            )}
 
-            <div className="border-t border-border pt-6">
-              <SuggestedProperties type="homestay" />
-            </div>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-serif font-semibold text-xl mb-2">Homestay của {property.hostName}</h2>
+                  <div className="flex items-center gap-4 text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {property.maxGuests} khách tối đa
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bed className="h-4 w-4" />
+                      {property.bedrooms} Phòng ngủ
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Bath className="h-4 w-4" />
+                      {property.bathrooms} Phòng tắm
+                    </span>
+                  </div>
+                </div>
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={property.hostAvatar || "/placeholder.svg"} alt={property.hostName} />
+                  <AvatarFallback>{property.hostName?.[0]}</AvatarFallback>
+                </Avatar>
+              </div>
 
-            <div className="border-t border-border pt-6">
-              <h3 className="font-semibold text-lg mb-3">Đánh giá</h3>
-              <ReviewsList reviews={reviews} loading={!property} />
-            </div>
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-lg mb-3">Mô tả</h3>
+                <p className="text-muted-foreground leading-relaxed">{property.description}</p>
+              </div>
 
-            <div className="border-t border-border pt-6">
-              <ReviewForm propertyId={property.id} onReviewSubmit={() => fetchReviews(property.id)} />
+              {property.hostName && (
+                <div className="border-t border-border pt-6">
+                  <h3 className="font-semibold text-lg mb-3">Thông tin chủ nhà</h3>
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={property.hostAvatar || "/placeholder.svg"} alt={property.hostName || ""} />
+                      <AvatarFallback>{property.hostName?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{property.hostName}</p>
+                      <p className="text-sm text-muted-foreground">{property.hostEmail}</p>
+                      <p className="text-sm text-muted-foreground">{property.hostPhone ? formatPhoneNumber(property.hostPhone) : "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {property.rules && property.rules.length > 0 && (
+                <div className="border-t border-border pt-6">
+                  <h3 className="font-semibold text-lg mb-3">Nội quy Homestay</h3>
+                  <ul className="list-none space-y-2">
+                    {property.rules.map((rule, index) => (
+                      <li key={index} className="text-muted-foreground">
+                        +) {rule}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-lg mb-3">Các phòng có sẵn</h3>
+                <div className="space-y-4">
+                  {rooms.map((room) => (
+                    <Card key={room.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="relative w-32 h-32 aspect-square">
+                          <Image src={room.images[0]} alt={room.roomName} fill className="object-cover rounded-md" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold mb-2">{room.roomName}</h4>
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{room.description}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-primary">
+                              {formatPrice(room.pricePerNight)} / đêm
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {room.capacity} khách
+                            </span>
+                          </div>
+                        </div>
+                        <Button onClick={() => router.push(`/room/${room.id}`)}>
+                          Xem ngay
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <SuggestedProperties type="homestay" />
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <h3 className="font-semibold text-lg mb-3">Đánh giá</h3>
+                <ReviewsList reviews={reviews} loading={!property} />
+              </div>
+
+              <div className="border-t border-border pt-6">
+                <ReviewForm propertyId={property.id} onReviewSubmit={() => fetchReviews(property.id)} />
+              </div>
             </div>
           </div>
-        </div>
       </main>
 
       <Footer />

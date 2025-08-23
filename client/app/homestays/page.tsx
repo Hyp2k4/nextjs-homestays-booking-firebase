@@ -291,7 +291,7 @@ export default function AllHomestaysPage() {
                             >
                                 <div className="relative aspect-[4/3]">
                                     <Image
-                                        src={property.images[0] || "/placeholder.svg"}
+                                        src={property.images && property.images.length > 0 ? property.images[0] : "/placeholder.svg"}
                                         alt={property.name || "Homestay image"}
                                         fill
                                         className="object-cover rounded-t-lg"
