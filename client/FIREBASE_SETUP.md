@@ -134,7 +134,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
 
 ## 9. Performance Optimization
 
-1. **Lazy Loading**: Components được lazy load
+1. **Lazy **: Components được lazy load
 2. **Caching**: Firebase tự động cache
 3. **Offline Support**: Có thể enable offline persistence
 4. **Bundle Size**: Chỉ import Firebase modules cần thiết

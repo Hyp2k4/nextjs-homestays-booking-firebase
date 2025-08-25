@@ -48,7 +48,11 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/bookings")}>
           <Calendar className="mr-2 h-4 w-4" />
-          <span>Bookings</span>
+          <span>My Bookings</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/my-vouchers")}>
+          <Calendar className="mr-2 h-4 w-4" />
+          <span>My Vouchers</span>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <Settings className="mr-2 h-4 w-4" />

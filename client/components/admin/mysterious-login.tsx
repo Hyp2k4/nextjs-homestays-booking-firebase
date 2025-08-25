@@ -138,7 +138,7 @@ export function MysteriousLogin() {
       <div className="mysterious-login-body">
         <div className="glow-card">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white ">Admin Portal</h1>
+            <h1 className="text-3xl font-bold text-white ">Welcome back Admin! </h1>
             <Image
               src="/Logo.svg"
               alt="Logo"

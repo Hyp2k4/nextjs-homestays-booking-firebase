@@ -22,6 +22,7 @@ interface AdminUser {
   email: string
   name: string
   role: "admin"
+  avatar?: string
 }
 
 interface AdminAuthState {
@@ -54,6 +55,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
             email: firebaseUser.email!,
             name: userData.name || "",
             role: "admin",
+            avatar: userData.avatar || null,
           })
         } else {
           setUser(null)

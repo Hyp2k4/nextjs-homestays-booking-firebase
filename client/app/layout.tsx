@@ -8,6 +8,8 @@ import { PromoProvider } from "@/contexts/promo-context"
 import { Toaster } from "sonner"
 import { GlobalChatWidget } from "@/components/chat/global-chat-widget"
 import { LivePromoBadge } from "@/components/live-promo-badge"
+import ClientLayout from "@/components/client-layout"
+import { AdminAuthProvider } from "@/contexts/admin-auth-context"
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -36,21 +38,19 @@ export const metadata: Metadata = {
   generator: "MeapDev",
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${montserrat.variable} ${openSans.variable} ${playfair.variable} antialiased`} suppressHydrationWarning>
       <body className="font-sans">
         <AuthProvider>
-          <PromoProvider>
-            <LivePromoBadge />
-            {children}
-            <Toaster position="top-right" richColors />
-            <GlobalChatWidget />
-          </PromoProvider>
+          <AdminAuthProvider>
+            <PromoProvider>
+                <LivePromoBadge />
+                {children}
+                <Toaster position="top-right" richColors />
+                <GlobalChatWidget />
+            </PromoProvider>
+          </AdminAuthProvider>
         </AuthProvider>
       </body>
     </html>

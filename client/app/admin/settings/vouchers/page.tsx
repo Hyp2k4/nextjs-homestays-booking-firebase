@@ -99,10 +99,11 @@ const VoucherCreator = () => {
         let successCount = 0
         for (const user of allUsers) {
             const randomDiscount = Math.floor(Math.random() * 41) + 10 // 10-50%
-            const newVoucher = {
-                code: `${removeDiacritics(user.name.split(' ')[0].toUpperCase())}${VoucherService.generateVoucherCode(4)}`,
+            type VoucherStatus = 'unused' | 'used' | 'expired';
+            const newVoucher: Omit<Voucher, "id" | "createdAt"> = {
+                code: VoucherService.generateVoucherCode(6),
                 description: description || `Exclusive ${randomDiscount}% discount for you, ${user.name}!`,
-                discountType: 'percentage' as 'percentage' | 'fixed_amount',
+                discountType: 'percentage',
                 discountValue: randomDiscount,
                 validFrom: Timestamp.fromDate(new Date(validFrom)),
                 expiryDate: Timestamp.fromDate(new Date(expiryDate)),
@@ -112,8 +113,10 @@ const VoucherCreator = () => {
                 redeemedCount: 0,
                 redeemedBy: [],
                 isActive: true,
-                claimedBy: user.id, // Assign voucher to a specific user
+                claimedBy: user.id,
+                status: 'unused', // literal, đúng kiểu
             }
+
             const result = await VoucherService.createVoucher(newVoucher)
             if (result) successCount++
         }
@@ -135,8 +138,10 @@ const VoucherCreator = () => {
         for (let i = 0; i < quantity; i++) {
             const randomDiscount = Math.floor(Math.random() * 41) + 10
             const hostNameForCode = removeDiacritics(host.name.split(' ')[0].toUpperCase());
+            const voucherCode = VoucherService.generateVoucherCode(6);
+
             const newVoucher = {
-                code: `${hostNameForCode}${VoucherService.generateVoucherCode(4)}`,
+                code: `${hostNameForCode}${voucherCode}`,
                 description: `Exclusive ${randomDiscount}% discount for ${host.name}'s properties`,
                 discountType: "percentage" as 'percentage' | 'fixed_amount',
                 discountValue: randomDiscount,
@@ -149,6 +154,7 @@ const VoucherCreator = () => {
                 redeemedCount: 0,
                 redeemedBy: [],
                 isActive: true,
+                status: 'unused' as 'unused' | 'used' | 'expired',
             }
             const result = await VoucherService.createVoucher(newVoucher)
             if (result) successCount++
@@ -178,7 +184,7 @@ const VoucherCreator = () => {
                                 }} placeholder="e.g., Summer Sale" />
                                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
                             </div>
-                             <div>
+                            <div>
                                 <Label htmlFor="bulk-valid-from" className={errors.validFrom ? 'text-red-500' : ''}>Valid From</Label>
                                 <Input id="bulk-valid-from" type="date" value={bulkState.validFrom} onChange={e => {
                                     setBulkState(prev => ({ ...prev, validFrom: e.target.value }));
@@ -204,7 +210,7 @@ const VoucherCreator = () => {
                                     </SelectContent>
                                 </Select>
                             </div>
-                             <div>
+                            <div>
                                 <Label htmlFor="bulk-total-quantity">Total Quantity (optional)</Label>
                                 <Input id="bulk-total-quantity" type="number" min="1" value={bulkState.totalQuantity ?? ""} onChange={e => setBulkState(prev => ({ ...prev, totalQuantity: e.target.value ? Number(e.target.value) : null }))} placeholder="Leave blank for unlimited" />
                             </div>
@@ -262,6 +268,7 @@ const VoucherCreator = () => {
 const VoucherList = () => {
     const [vouchers, setVouchers] = useState<Voucher[]>([])
     const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState("")
 
     const fetchVouchers = async () => {
         setLoading(true)
@@ -284,6 +291,12 @@ const VoucherList = () => {
         }
     }
 
+    // Lọc theo code voucher
+    const filteredVouchers = useMemo(() => {
+        if (!search) return vouchers
+        return vouchers.filter(v => v.code.toLowerCase().includes(search.toLowerCase()))
+    }, [search, vouchers])
+
     return (
         <Card>
             <CardHeader>
@@ -291,6 +304,16 @@ const VoucherList = () => {
                 <CardDescription>List of all generated vouchers in the system.</CardDescription>
             </CardHeader>
             <CardContent>
+                <div className="mb-4 flex items-center gap-2">
+                    <Input
+                        placeholder="Search by voucher code..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="flex-1"
+                    />
+                    <Button onClick={() => setSearch("")}>Clear</Button>
+                </div>
+
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -306,7 +329,9 @@ const VoucherList = () => {
                     <TableBody>
                         {loading ? (
                             <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
-                        ) : vouchers.map((v) => (
+                        ) : filteredVouchers.length === 0 ? (
+                            <TableRow><TableCell colSpan={7} className="text-center">No vouchers found</TableCell></TableRow>
+                        ) : filteredVouchers.map((v) => (
                             <TableRow key={v.id}>
                                 <TableCell className="font-mono">{v.code}</TableCell>
                                 <TableCell>{v.description}</TableCell>
@@ -332,6 +357,7 @@ const VoucherList = () => {
         </Card>
     )
 }
+
 
 
 export default function VoucherSettingsPage() {

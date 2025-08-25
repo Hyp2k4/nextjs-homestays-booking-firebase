@@ -5,13 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Range } from "react-date-range";
 import { useRouter } from "next/navigation";
 import { differenceInDays, eachDayOfInterval } from 'date-fns';
-import axios from 'axios';
-import { toast } from "react-hot-toast";
 
 import { SafeListing, SafeReservation, SafeUser } from "@/app/types";
 
 import Calendar from '../inputs/Calendar';
-import Button from '../Button';
 
 const initialDateRange = {
     startDate: new Date(),

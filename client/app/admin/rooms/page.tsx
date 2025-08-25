@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { formatPrice } from "@/lib/utils"
 import type { Room } from "@/types/property"
-
+import Loading from "@/components/ui/loading"
 export default function AdminRoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,7 +23,7 @@ export default function AdminRoomsPage() {
   }, [])
 
   if (loading) {
-    return <div>Loading rooms...</div>
+    return <Loading></Loading>
   }
 
   return (

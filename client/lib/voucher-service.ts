@@ -49,13 +49,10 @@ export const VoucherService = {
   async getMyVouchers(userId: string): Promise<Voucher[]> {
     try {
       const vouchersRef = collection(db, "vouchers");
-      
+
       // Simplified query to avoid needing a composite index.
       // Filtering for active/expired will be handled client-side.
-      const q = query(
-        vouchersRef,
-        where("claimedBy", "==", userId)
-      );
+      const q = query(vouchersRef, where("claimedBy", "==", userId));
 
       const querySnapshot = await getDocs(q);
 
@@ -76,7 +73,9 @@ export const VoucherService = {
     }
   },
 
-  async createVoucher(voucherData: Omit<Voucher, "id" | "createdAt">): Promise<string | null> {
+  async createVoucher(
+    voucherData: Omit<Voucher, "id" | "createdAt">
+  ): Promise<string | null> {
     try {
       const vouchersRef = collection(db, "vouchers");
       const docRef = await addDoc(vouchersRef, {
@@ -89,7 +88,6 @@ export const VoucherService = {
       return null;
     }
   },
-
   generateVoucherCode(length = 6): string {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let result = "";
@@ -98,37 +96,45 @@ export const VoucherService = {
     }
     return result;
   },
+  // 1. Generate voucher cho tất cả user
+  async generateVoucherForAllUsers(
+    voucherData: Omit<Voucher, "id" | "createdAt" | "claimedBy" | "status">,
+    userIds: string[]
+  ) {
+    const vouchersRef = collection(db, "vouchers");
 
-  async claimVoucher(voucherId: string, userId: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      const voucherRef = doc(db, "vouchers", voucherId);
+    const batchPromises = userIds.map(async (userId) => {
+      const voucherDoc = {
+        ...voucherData,
+        claimedBy: userId,
+        status: "unused",
+        createdAt: Timestamp.now(),
+      };
+      return addDoc(vouchersRef, voucherDoc);
+    });
 
-      await runTransaction(db, async (transaction) => {
-        const voucherDoc = await transaction.get(voucherRef);
-        if (!voucherDoc.exists()) {
-          throw new Error("Voucher does not exist.");
-        }
+    await Promise.all(batchPromises);
+  },
 
-        const voucherData = voucherDoc.data() as Voucher;
+  // 2. Claim voucher thủ công (promo)
+  async claimVoucher(voucherId: string, userId: string) {
+    const voucherRef = doc(db, "vouchers", voucherId);
 
-        if (voucherData.claimedBy) {
-          throw new Error("Voucher has already been claimed by someone else.");
-        }
+    await runTransaction(db, async (transaction) => {
+      const voucherDoc = await transaction.get(voucherRef);
+      if (!voucherDoc.exists()) throw new Error("Voucher does not exist");
 
-        transaction.update(voucherRef, { claimedBy: userId });
-      });
+      const voucherData = voucherDoc.data() as Voucher;
+      if (voucherData.claimedBy) throw new Error("Voucher has been claimed");
 
-      return { success: true };
-    } catch (error: any) {
-      console.error("Error claiming voucher:", error);
-      return { success: false, error: error.message || "Could not claim voucher." };
-    }
+      transaction.update(voucherRef, { claimedBy: userId });
+    });
   },
 
   async getVouchersForHost(hostId: string): Promise<Voucher[]> {
     try {
       const vouchersRef = collection(db, "vouchers");
-      
+
       // Simplified query to avoid composite index
       const q = query(
         vouchersRef,
@@ -139,12 +145,22 @@ export const VoucherService = {
       const querySnapshot = await getDocs(q);
 
       const vouchers = querySnapshot.docs.map((doc) => {
-        const data = doc.data();
+        const data = doc.data() as Omit<Voucher, "id" | "status">;
+
+        const expiryDate = data.expiryDate.toDate();
+        const createdAt = data.createdAt.toDate();
+
+        // Tính status
+        let status: "unused" | "used" | "expired" = "unused";
+        if (data.claimedBy) status = "used";
+        else if (expiryDate < new Date()) status = "expired";
+
         return {
           id: doc.id,
           ...data,
-          expiryDate: data.expiryDate.toDate(),
-          createdAt: data.createdAt.toDate(),
+          expiryDate,
+          createdAt,
+          status, // ✅ gán status
         } as Voucher;
       });
 
@@ -175,7 +191,10 @@ export const VoucherService = {
     }
   },
 
-  async updateVoucherStatus(voucherId: string, isActive: boolean): Promise<boolean> {
+  async updateVoucherStatus(
+    voucherId: string,
+    isActive: boolean
+  ): Promise<boolean> {
     try {
       const voucherRef = doc(db, "vouchers", voucherId);
       await updateDoc(voucherRef, { isActive });

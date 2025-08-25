@@ -90,12 +90,11 @@ export default function RoomDetailPage() {
   )
   const [activeChat, setActiveChat] = useState<Chat | null>(null)
   const [userVouchers, setUserVouchers] = useState<Voucher[]>([])
-  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [tempCheckIn, setTempCheckIn] = useState<Date | undefined>(checkIn)
   const [tempCheckOut, setTempCheckOut] = useState<Date | undefined>(checkOut)
-  const [voucherInput, setVoucherInput] = useState(""); // Mã nhập tay
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null); // Voucher áp dụng
+  const [voucherInput, setVoucherInput] = useState("");
   const [allVouchers, setAllVouchers] = useState<Voucher[]>([]);
 
   useEffect(() => {
@@ -104,14 +103,18 @@ export default function RoomDetailPage() {
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
-        const vouchers = await VoucherService.getAllVouchers(); // API lấy tất cả voucher
-        setAllVouchers(vouchers);
+        if (!user) return;
+        const vouchers = await VoucherService.getMyVouchers(user.id); // API lấy voucher của user
+        // Chỉ giữ voucher chưa sử dụng
+        const unusedVouchers = vouchers.filter(v => v.status === 'unused');
+        setUserVouchers(unusedVouchers);
       } catch (error) {
         console.error("Failed to fetch vouchers", error);
       }
     };
     fetchVouchers();
-  }, []);
+  }, [user]);
+
   const handleToggleWishlist = async () => {
     const roomId = params?.id as string
     console.log("Toggling wishlist for room:", roomId);
@@ -179,11 +182,11 @@ export default function RoomDetailPage() {
 
   useEffect(() => {
     const checkAvailability = async () => {
-      if (checkIn && checkOut && room) {
+      if (tempCheckIn && tempCheckOut && room) {
         const available = await BookingService.isRoomAvailable(
           room.id,
-          checkIn.toISOString(),
-          checkOut.toISOString()
+          tempCheckIn.toISOString(),
+          tempCheckOut.toISOString()
         );
         setIsAvailable(available);
         if (available) {
@@ -193,8 +196,31 @@ export default function RoomDetailPage() {
         }
       }
     };
-    checkAvailability();
-  }, [checkIn, checkOut, room]);
+
+    // Debounce để tránh gọi API quá nhiều
+    const timeoutId = setTimeout(checkAvailability, 300);
+    return () => clearTimeout(timeoutId);
+  }, [tempCheckIn, tempCheckOut, room]); useEffect(() => {
+    const checkAvailability = async () => {
+      if (tempCheckIn && tempCheckOut && room) {
+        const available = await BookingService.isRoomAvailable(
+          room.id,
+          tempCheckIn.toISOString(),
+          tempCheckOut.toISOString()
+        );
+        setIsAvailable(available);
+        if (available) {
+          toast.success("Phòng trống trong khoảng thời gian đã chọn!");
+        } else {
+          toast.error("Phòng đã được đặt trong khoảng thời gian này.");
+        }
+      }
+    };
+
+    // Debounce để tránh gọi API quá nhiều
+    const timeoutId = setTimeout(checkAvailability, 300);
+    return () => clearTimeout(timeoutId);
+  }, [tempCheckIn, tempCheckOut, room]);
 
 
   if (loading || isDesktop === undefined) {
@@ -204,8 +230,8 @@ export default function RoomDetailPage() {
       </div>
     )
   }
+  // Hàm áp dụng voucher từ input
   const handleApplyVoucher = () => {
-    // tìm voucher trong danh sách tất cả voucher (không giới hạn user)
     const voucher = allVouchers.find(v => v.code.toUpperCase() === voucherInput.toUpperCase());
     if (voucher) {
       setAppliedVoucher(voucher);
@@ -214,6 +240,13 @@ export default function RoomDetailPage() {
       setAppliedVoucher(null);
       toast.error("Voucher không hợp lệ");
     }
+  };
+
+  // Hàm chọn voucher từ dropdown
+  const handleSelectVoucher = (voucherId: string) => {
+    const voucher = userVouchers.find((v) => v.id === voucherId);
+    setAppliedVoucher(voucher || null);
+    setVoucherInput(voucher?.code || ""); // Đồng bộ input
   };
 
   if (!room) {
@@ -279,17 +312,19 @@ export default function RoomDetailPage() {
     }
   }
 
-  const handleBookNow = async () => {
-    if (!checkIn || !checkOut) {
+  const handleBookNow = async (useTempDates = false) => {
+    // Determine which dates to use
+    const effectiveCheckIn = useTempDates ? tempCheckIn : checkIn;
+    const effectiveCheckOut = useTempDates ? tempCheckOut : checkOut;
+
+    if (!effectiveCheckIn || !effectiveCheckOut) {
       toast.error("Vui lòng chọn ngày nhận và trả phòng.");
       return;
     }
+
     if (!user) {
       toast.error("Please login to book our room", {
-        action: {
-          label: "Login",
-          onClick: () => setIsLoginModalOpen(true),
-        },
+        action: { label: "Login", onClick: () => setIsLoginModalOpen(true) }
       });
       return;
     }
@@ -297,40 +332,46 @@ export default function RoomDetailPage() {
     setLoading(true);
     try {
       const totalNights = Math.ceil(
-        (checkOut.getTime() - checkIn.getTime()) /
-        (1000 * 60 * 60 * 24)
+        (effectiveCheckOut.getTime() - effectiveCheckIn.getTime()) / (1000 * 60 * 60 * 24)
       );
-      let totalPrice = room.pricePerNight * totalNights;
+
+      // Tính toán giá với voucher đã áp dụng trên TỔNG CỘNG
+      let roomTotal = room.pricePerNight * totalNights;
+      let totalPrice = roomTotal + serviceFee;
 
       if (appliedVoucher) {
+        let discountAmount = 0;
         if (appliedVoucher.discountType === "percentage") {
-          totalPrice -= totalPrice * (appliedVoucher.discountValue / 100);
+          discountAmount = totalPrice * (appliedVoucher.discountValue / 100);
         } else {
-          totalPrice -= appliedVoucher.discountValue;
+          discountAmount = appliedVoucher.discountValue;
         }
+        totalPrice -= discountAmount;
+        totalPrice = Math.max(0, totalPrice); // Đảm bảo giá không âm
       }
+
       const bookingData = {
         userId: user.id,
         roomId: room.id,
         homestayId: room.homestayId,
-        checkInDate: checkIn.toISOString(),
-        checkOutDate: checkOut.toISOString(),
+        checkInDate: effectiveCheckIn.toISOString(),
+        checkOutDate: effectiveCheckOut.toISOString(),
         guests,
         totalPrice,
         status: "pending" as const,
         roomName: room.roomName,
         totalNights,
         pricePerNight: room.pricePerNight,
-        hostId: homestay.hostId,
+        hostId: homestay?.hostId || "",
         paymentMethod: "pay_at_homestay",
       };
 
-      // ✅ Gọi createRoomBooking (có check available trong service)
+      // Truyền appliedVoucher.id thay vì selectedVoucher?.id
       const result = await BookingService.createRoomBooking(
         bookingData,
         { name: user.name, email: user.email },
         room,
-        selectedVoucher?.id
+        appliedVoucher?.id // Sửa thành appliedVoucher
       );
 
       if (result.success && result.bookingId) {
@@ -354,13 +395,13 @@ export default function RoomDetailPage() {
               checkOutDate: bookingData.checkOutDate,
               totalPrice: bookingData.totalPrice,
               guests: bookingData.guests,
-              voucherCode: selectedVoucher?.code,
-              discountAmount: selectedVoucher
-                ? selectedVoucher.discountType === "percentage"
+              voucherCode: appliedVoucher?.code,
+              discountAmount: appliedVoucher
+                ? appliedVoucher.discountType === "percentage"
                   ? room.pricePerNight *
                   totalNights *
-                  (selectedVoucher.discountValue / 100)
-                  : selectedVoucher.discountValue
+                  (appliedVoucher.discountValue / 100)
+                  : appliedVoucher.discountValue
                 : 0,
             },
           }),
@@ -384,31 +425,30 @@ export default function RoomDetailPage() {
       toast.error("Vui lòng chọn ngày nhận và trả phòng.");
       return;
     }
-    // đồng bộ tempCheckIn/tempCheckOut vào checkIn/checkOut
+
+    // Đồng bộ tempCheckIn/tempCheckOut vào checkIn/checkOut
     setCheckIn(tempCheckIn);
     setCheckOut(tempCheckOut);
 
-    await handleBookNow();
+    // Sử dụng temp dates trực tiếp để tránh timing issues
+    await handleBookNow(true);
   };
 
-
-  // --- Bên trong RoomDetailPage, trước return ---
-  const totalNights = checkIn && checkOut
-    ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+  const totalNights = tempCheckIn && tempCheckOut
+    ? Math.ceil((tempCheckOut.getTime() - tempCheckIn.getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
   const roomTotal = room ? room.pricePerNight * totalNights : 0;
-
   const serviceFee = 50000;
 
-  const discount = selectedVoucher
-    ? selectedVoucher.discountType === "percentage"
-      ? roomTotal * (selectedVoucher.discountValue / 100)
-      : selectedVoucher.discountValue
+  // Tính discount dựa trên roomTotal + serviceFee (giống như trong handleBookNow)
+  const discount = appliedVoucher
+    ? appliedVoucher.discountType === "percentage"
+      ? (roomTotal + serviceFee) * (appliedVoucher.discountValue / 100)
+      : Math.min(appliedVoucher.discountValue, roomTotal + serviceFee) // Đảm bảo discount không vượt quá tổng
     : 0;
 
-  const totalPrice = roomTotal + serviceFee - discount;
-
+  const totalPrice = Math.max(0, roomTotal + serviceFee - discount); // Đảm bảo giá không âm
 
   return (
     <div className="min-h-screen bg-background">
@@ -620,8 +660,7 @@ export default function RoomDetailPage() {
                               onChange={({ checkIn, checkOut }) => {
                                 setTempCheckIn(checkIn)
                                 setTempCheckOut(checkOut)
-
-                                // Đồng bộ với state chính để trigger check availability
+                                // Cập nhật ngay để trigger availability check
                                 setCheckIn(checkIn)
                                 setCheckOut(checkOut)
                               }}
@@ -646,8 +685,7 @@ export default function RoomDetailPage() {
                               onChange={({ checkIn, checkOut }) => {
                                 setTempCheckIn(checkIn)
                                 setTempCheckOut(checkOut)
-
-                                // Đồng bộ với state chính để trigger check availability
+                                // Cập nhật ngay để tính toán giá
                                 setCheckIn(checkIn)
                                 setCheckOut(checkOut)
                               }}
@@ -674,21 +712,20 @@ export default function RoomDetailPage() {
                     {userVouchers.length > 0 && (
                       <div className="mb-3">
                         <Select
-                          value={selectedVoucher?.id}
-                          onValueChange={(voucherId) => {
-                            const voucher = userVouchers.find((v) => v.id === voucherId);
-                            setSelectedVoucher(voucher || null);
-                          }}
+                          value={appliedVoucher?.id}
+                          onValueChange={handleSelectVoucher}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Chọn voucher">
-                              {selectedVoucher && selectedVoucher.code}
+                              {appliedVoucher && appliedVoucher.code}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent className="w-96 rounded-lg shadow-lg">
                             {userVouchers.map((voucher) => (
                               <SelectItem key={voucher.id} value={voucher.id}>
-                                {voucher.code} - {voucher.discountType === "percentage" ? `${voucher.discountValue}% OFF` : `${formatPrice(voucher.discountValue)} OFF`}
+                                {voucher.code} - {voucher.discountType === "percentage"
+                                  ? `${voucher.discountValue}% OFF`
+                                  : `${formatPrice(voucher.discountValue)} OFF`}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -719,7 +756,7 @@ export default function RoomDetailPage() {
                       </div>
                       {discount > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>Discount ({selectedVoucher?.code})</span>
+                          <span>Discount ({appliedVoucher?.code})</span>
                           <span>-{formatPrice(discount)}</span>
                         </div>
                       )}
@@ -784,11 +821,11 @@ export default function RoomDetailPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
                           <DateTimeRangePicker
-                            checkIn={checkIn}
-                            checkOut={checkOut}
+                            checkIn={tempCheckIn}
+                            checkOut={tempCheckOut}
                             onChange={({ checkIn, checkOut }) => {
-                              setCheckIn(checkIn)
-                              setCheckOut(checkOut)
+                              setTempCheckIn(checkIn)
+                              setTempCheckOut(checkOut)
                             }}
                           />
                         </PopoverContent>
@@ -807,11 +844,11 @@ export default function RoomDetailPage() {
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
                           <DateTimeRangePicker
-                            checkIn={checkIn}
-                            checkOut={checkOut}
+                            checkIn={tempCheckIn}
+                            checkOut={tempCheckOut}
                             onChange={({ checkIn, checkOut }) => {
-                              setCheckIn(checkIn)
-                              setCheckOut(checkOut)
+                              setTempCheckIn(checkIn)
+                              setTempCheckOut(checkOut)
                             }}
                           />
                         </PopoverContent>
@@ -835,38 +872,21 @@ export default function RoomDetailPage() {
                   {userVouchers.length > 0 && (
                     <div className="mb-3">
                       <label className="text-sm font-medium">Voucher</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          value={voucherInput}
-                          onChange={(e) => setVoucherInput(e.target.value)}
-                          placeholder="Nhập mã voucher"
-                          className="w-full px-3 py-2 border rounded-md"
-                        />
-                        <button
-                          onClick={handleApplyVoucher}
-                          className="px-4 py-2 bg-primary text-white rounded-md"
-                        >
-                          Áp dụng
-                        </button>
-                      </div>
-
                       <Select
-                        value={selectedVoucher?.id}
-                        onValueChange={(voucherId) => {
-                          const voucher = userVouchers.find((v) => v.id === voucherId);
-                          setSelectedVoucher(voucher || null);
-                        }}
+                        value={appliedVoucher?.id || ""}
+                        onValueChange={handleSelectVoucher}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Chọn voucher">
-                            {selectedVoucher && selectedVoucher.code}
+                            {appliedVoucher && appliedVoucher.code}
                           </SelectValue>
                         </SelectTrigger>
-                        <SelectContent className="w-96 rounded-lg shadow-lg">
+                        <SelectContent>
                           {userVouchers.map((voucher) => (
                             <SelectItem key={voucher.id} value={voucher.id}>
-                              {voucher.code} - {voucher.discountType === "percentage" ? `${voucher.discountValue}% OFF` : `${formatPrice(voucher.discountValue)} OFF`}
+                              {voucher.code} - {voucher.discountType === "percentage"
+                                ? `${voucher.discountValue}% OFF`
+                                : `${formatPrice(voucher.discountValue)} OFF`}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -877,55 +897,25 @@ export default function RoomDetailPage() {
                 </div>
 
                 {/* Price summary */}
-                {checkIn && checkOut && (
+                {tempCheckIn && tempCheckOut && (
                   <div className="border-t border-border pt-4 mt-4 space-y-2 px-4">
                     <div className="flex justify-between text-sm">
-                      <span>
-                        Giá phòng x{" "}
-                        {Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))} đêm
-                      </span>
-                      <span>
-                        {formatPrice(
-                          room.pricePerNight *
-                          Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-                        )}
-                      </span>
+                      <span>Giá phòng x {totalNights} đêm</span>
+                      <span>{formatPrice(roomTotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Phí dịch vụ</span>
-                      <span>{formatPrice(50000)}</span>
+                      <span>{formatPrice(serviceFee)}</span>
                     </div>
-                    {selectedVoucher && (
+                    {discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>Discount ({selectedVoucher.code})</span>
-                        <span>
-                          -
-                          {selectedVoucher.discountType === 'percentage'
-                            ? formatPrice(
-                              room.pricePerNight *
-                              Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) *
-                              (selectedVoucher.discountValue / 100)
-                            )
-                            : formatPrice(selectedVoucher.discountValue)}
-                        </span>
+                        <span>Discount ({appliedVoucher?.code})</span>
+                        <span>-{formatPrice(discount)}</span>
                       </div>
                     )}
                     <div className="border-t border-border pt-2 flex justify-between font-semibold">
                       <span>Tổng cộng</span>
-                      <span>
-                        {formatPrice(
-                          room.pricePerNight *
-                          Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) +
-                          50000 -
-                          (selectedVoucher
-                            ? selectedVoucher.discountType === 'percentage'
-                              ? room.pricePerNight *
-                              Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)) *
-                              (selectedVoucher.discountValue / 100)
-                              : selectedVoucher.discountValue
-                            : 0)
-                        )}
-                      </span>
+                      <span>{formatPrice(totalPrice)}</span>
                     </div>
                   </div>
                 )}
@@ -952,7 +942,14 @@ export default function RoomDetailPage() {
       )}
 
       <Footer />
-      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
-    </div>
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSwitchToRegister={() => {
+          setIsLoginModalOpen(false);
+          // mở modal đăng ký nếu có
+          // setIsRegisterModalOpen(true);
+        }}
+      />    </div>
   )
 }

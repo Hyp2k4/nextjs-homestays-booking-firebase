@@ -19,13 +19,8 @@ export interface Booking {
   subtotal: number;
   serviceFee: number;
   totalPrice: number;
-  status:
-    | "pending"
-    | "confirmed"
-    | "cancelled"
-    | "completed"
-    | "unpaid"
-    | "paid";
+  status: "pending" | "confirmed" | "cancelled" | "completed" | "unpaid" | "paid"
+
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
   paymentMethod: "vnpay" | "momo" | "bank_transfer" | "pay_at_homestay";
   guestInfo: {
