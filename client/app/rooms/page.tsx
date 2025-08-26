@@ -18,7 +18,7 @@ import { Heart, MapPin, Home, CheckCircle, XCircle } from "lucide-react"
 import { formatPrice } from "@/lib/utils"
 import { RoomCard } from "@/components/room-card"
 import { motion } from "framer-motion"
-
+import { TravelHeader } from "@/components/travel/header"
 export default function RoomsPage() {
   const { user } = useAuth()
   const [rooms, setRooms] = useState<any[]>([])
@@ -65,7 +65,8 @@ export default function RoomsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <TravelHeader />
+
       <HeroSlider />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-6">

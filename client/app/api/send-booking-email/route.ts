@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import transporter from "@/lib/nodemailer";
 import QRCode from "qrcode";
+import { EmailService } from "@/lib/email-service";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { to, bookingId, bookingDetails } = body;
+    const { to, bookingId, bookingDetails, useTemplate = true } = body;
 
     if (!to || !bookingId || !bookingDetails) {
       return NextResponse.json(
@@ -14,6 +15,35 @@ export async function POST(req: Request) {
       );
     }
 
+    // Try to use beautiful email template first
+    if (useTemplate) {
+      try {
+        const emailSent = await EmailService.sendBookingConfirmationEmail(to, {
+          guestName: bookingDetails.userName || "Guest",
+          homestayName: bookingDetails.roomName || "Homestay",
+          checkInDate: new Date(bookingDetails.checkInDate).toLocaleDateString(),
+          checkOutDate: new Date(bookingDetails.checkOutDate).toLocaleDateString(),
+          guestCount: "1", // Default guest count
+          totalAmount: `${bookingDetails.totalPrice?.toLocaleString() || 0}₫`,
+          bookingId: bookingId,
+          hostName: "Your Host",
+          hostPhone: bookingDetails.phone || "Contact via platform",
+          hostEmail: "Contact via platform",
+          hostId: ""
+        });
+
+        if (emailSent) {
+          return NextResponse.json({
+            success: true,
+            message: "Booking confirmation email sent successfully using template"
+          });
+        }
+      } catch (error) {
+        console.error("Template email failed, falling back to legacy:", error);
+      }
+    }
+
+    // Fallback to legacy email format
     const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL}/booking-details/${bookingId}`;
     const qrCodeImageBuffer = await QRCode.toBuffer(bookingUrl);
 

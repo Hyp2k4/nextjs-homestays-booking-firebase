@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
+
 import { useAuth } from "@/contexts/auth-context"
 import { chatService } from "@/lib/chat-service"
 import type { Chat } from "@/types/chat"
@@ -17,6 +19,9 @@ export function GlobalChatWidget() {
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChat, setActiveChat] = useState<Chat | null>(null)
 
+  const pathname = usePathname()
+  const isAdminRoute = pathname?.startsWith("/admin")
+
   useEffect(() => {
     if (!user) return
 
@@ -28,6 +33,11 @@ export function GlobalChatWidget() {
     const unread = chat.unreadCount && user ? chat.unreadCount[user.id] || 0 : 0
     return acc + unread
   }, 0)
+
+  // Hide chat widget on admin routes
+  if (isAdminRoute) {
+    return null
+  }
 
   if (!user) {
     return null

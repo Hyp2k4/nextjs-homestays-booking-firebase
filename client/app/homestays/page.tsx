@@ -24,7 +24,7 @@ import {
 import { DatePicker } from "@/components/date-picker"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-
+import { TravelHeader } from "@/components/travel/header"
 export default function AllHomestaysPage() {
     const [properties, setProperties] = useState<Property[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -74,7 +74,7 @@ export default function AllHomestaysPage() {
 
     return (
         <div className="min-h-screen bg-background">
-            <Header />
+            <TravelHeader />
 
             <HeroSlider />
 

@@ -11,8 +11,15 @@ import {
   doc,
   runTransaction,
   updateDoc,
+  onSnapshot,
+  deleteDoc,
+  getDoc,
+  arrayUnion,
+  increment,
+  type Unsubscribe
 } from "firebase/firestore";
-import type { Voucher } from "@/types/voucher";
+import type { Voucher, UserVoucher, VoucherSuggestion } from "@/types/voucher";
+import { NotificationService } from "@/lib/notification-service";
 
 export const VoucherService = {
   async getAvailableVouchers(): Promise<Voucher[]> {
@@ -202,6 +209,134 @@ export const VoucherService = {
     } catch (error) {
       console.error("Error updating voucher status:", error);
       return false;
+    }
+  },
+
+  // Subscribe to all vouchers (admin)
+  subscribeToVouchers(callback: (vouchers: Voucher[]) => void): Unsubscribe {
+    const q = query(collection(db, "vouchers"), orderBy("createdAt", "desc"))
+    return onSnapshot(q, (snapshot) => {
+      const vouchers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        expiryDate: doc.data().expiryDate?.toDate(),
+        createdAt: doc.data().createdAt?.toDate(),
+      } as Voucher))
+      callback(vouchers)
+    })
+  },
+
+  // Give voucher to user
+  async giveVoucherToUser(userId: string, voucherId: string): Promise<void> {
+    try {
+      await addDoc(collection(db, "userVouchers"), {
+        userId,
+        voucherId,
+        usageCount: 0,
+        receivedAt: Timestamp.now(),
+        isUsed: false
+      })
+
+      // Get voucher details for notification
+      const voucherDoc = await getDoc(doc(db, "vouchers", voucherId))
+      if (voucherDoc.exists()) {
+        const voucher = voucherDoc.data() as Voucher
+        await NotificationService.notifyVoucherReceived(
+          userId,
+          voucher.code,
+          voucher.discountValue,
+          voucher.expiryDate?.toDate?.()?.toLocaleDateString() || "N/A"
+        )
+      }
+    } catch (error) {
+      console.error("Error giving voucher to user:", error)
+      throw error
+    }
+  },
+
+  // Get voucher suggestions for a room
+  async getVoucherSuggestionsForRoom(
+    roomId: string,
+    homestayId: string,
+    userId: string,
+    currentPrice: number
+  ): Promise<VoucherSuggestion | null> {
+    try {
+      const availableVouchers = await this.getAvailableVouchers()
+
+      // Filter vouchers applicable to this room/homestay
+      const applicableVouchers = availableVouchers.filter(voucher => {
+        switch (voucher.scope) {
+          case "all_rooms":
+          case "all_homestays":
+            return true
+          case "specific_room":
+            return voucher.applicableRoomId === roomId
+          case "specific_homestay":
+            return voucher.applicableHomestayId === homestayId
+          default:
+            return false
+        }
+      })
+
+      if (applicableVouchers.length === 0) return null
+
+      // Calculate savings for each voucher
+      const suggestedVouchers = applicableVouchers.map(voucher => {
+        let discountAmount = 0
+        if (voucher.discountType === "percentage") {
+          discountAmount = (currentPrice * voucher.discountValue) / 100
+          if (voucher.maxDiscountAmount) {
+            discountAmount = Math.min(discountAmount, voucher.maxDiscountAmount)
+          }
+        } else {
+          discountAmount = voucher.discountValue
+        }
+
+        const finalPrice = Math.max(0, currentPrice - discountAmount)
+
+        return {
+          voucher,
+          finalPrice,
+          savings: discountAmount
+        }
+      }).filter(item => item.savings > 0) // Only show vouchers that provide savings
+        .sort((a, b) => b.savings - a.savings) // Sort by highest savings first
+
+      if (suggestedVouchers.length === 0) return null
+
+      return {
+        roomId,
+        roomName: "", // To be populated by caller
+        homestayName: "", // To be populated by caller
+        currentPrice,
+        suggestedVouchers
+      }
+    } catch (error) {
+      console.error("Error getting voucher suggestions:", error)
+      return null
+    }
+  },
+
+  // Check if voucher code exists
+  async isVoucherCodeUnique(code: string): Promise<boolean> {
+    try {
+      const q = query(collection(db, "vouchers"), where("code", "==", code))
+      const snapshot = await getDocs(q)
+      return snapshot.empty
+    } catch (error) {
+      console.error("Error checking voucher code uniqueness:", error)
+      return false
+    }
+  },
+
+  // Delete voucher
+  async deleteVoucher(voucherId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, "vouchers", voucherId))
+    } catch (error) {
+      console.error("Error deleting voucher:", error)
+      throw error
     }
   },
 };

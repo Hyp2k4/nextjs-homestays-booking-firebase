@@ -1,0 +1,288 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "navigation": {
+    "home": "Home",
+    "homestays": "Homestays",
+    "about": "About",
+    "contact": "Contact",
+    "profile": "Profile",
+    "bookings": "Bookings",
+    "vouchers": "Vouchers",
+    "wishlist": "Wishlist",
+    "messages": "Messages",
+    "settings": "Settings",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out"
+  },
+  "header": {
+    "siteName": "Homestay Booking",
+    "tagline": "Your gateway to authentic homestay experiences",
+    "searchPlaceholder": "Search destinations...",
+    "notifications": "Notifications",
+    "userMenu": "User Menu",
+    "adminPanel": "Admin Panel"
+  },
+  "footer": {
+    "description": "Discover unique homestays and create unforgettable memories. Book authentic local experiences with trusted hosts worldwide.",
+    "company": "Company",
+    "support": "Support",
+    "hosting": "Hosting",
+    "legal": "Legal",
+    "newsletter": {
+      "title": "Stay Updated",
+      "description": "Get the latest deals and travel inspiration delivered to your inbox.",
+      "placeholder": "Enter your email",
+      "subscribe": "Subscribe"
+    },
+    "contact": {
+      "address": "123 Travel Street, Ho Chi Minh City, Vietnam",
+      "phone": "+84 123 456 789",
+      "email": "hello@homestay.com"
+    },
+    "copyright": "All rights reserved. Made with ❤️ in Vietnam.",
+    "language": "English",
+    "currency": "VND"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome Back",
+      "subtitle": "Sign in to your account",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "signIn": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up here"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Join our homestay community",
+      "name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "agreeTerms": "I agree to the Terms of Service and Privacy Policy",
+      "signUp": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in here"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Admin Dashboard",
+      "welcome": "Welcome back, {{name}}!",
+      "overview": "System Overview",
+      "quickActions": "Quick Actions",
+      "recentActivity": "Recent Activity"
+    },
+    "analytics": {
+      "title": "Analytics",
+      "revenue": "Revenue",
+      "bookings": "Bookings",
+      "users": "Users",
+      "properties": "Properties",
+      "totalRevenue": "Total Revenue",
+      "totalBookings": "Total Bookings",
+      "totalUsers": "Total Users",
+      "totalProperties": "Total Properties",
+      "thisMonth": "This Month",
+      "lastMonth": "Last Month",
+      "growth": "Growth"
+    },
+    "users": {
+      "title": "User Management",
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "newUsers": "New Users",
+      "userDetails": "User Details",
+      "status": "Status",
+      "role": "Role",
+      "joinDate": "Join Date",
+      "lastActive": "Last Active"
+    },
+    "bookings": {
+      "title": "Booking Management",
+      "totalBookings": "Total Bookings",
+      "pendingBookings": "Pending",
+      "confirmedBookings": "Confirmed",
+      "completedBookings": "Completed",
+      "bookingDetails": "Booking Details",
+      "guest": "Guest",
+      "host": "Host",
+      "homestay": "Homestay",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "amount": "Amount",
+      "status": "Status"
+    },
+    "settings": {
+      "title": "Settings",
+      "notifications": {
+        "title": "Notification Settings",
+        "description": "Configure email and push notification preferences",
+        "emailNotifications": "Email Notifications",
+        "pushNotifications": "Push Notifications",
+        "newBookings": "New Bookings",
+        "newReviews": "New Reviews",
+        "newUsers": "New Users",
+        "paymentAlerts": "Payment Alerts",
+        "systemAlerts": "System Alerts"
+      },
+      "security": {
+        "title": "Security Settings",
+        "description": "Configure authentication and security policies",
+        "authentication": "Authentication",
+        "passwordPolicy": "Password Policy",
+        "apiSecurity": "API Security",
+        "emailVerification": "Email Verification",
+        "twoFactor": "Two-Factor Authentication",
+        "sessionTimeout": "Session Timeout",
+        "maxLoginAttempts": "Max Login Attempts"
+      },
+      "appearance": {
+        "title": "Appearance Settings",
+        "description": "Customize theme and branding",
+        "branding": "Branding",
+        "colors": "Colors",
+        "theme": "Theme",
+        "layout": "Layout",
+        "siteName": "Site Name",
+        "logo": "Logo",
+        "primaryColor": "Primary Color",
+        "secondaryColor": "Secondary Color"
+      },
+      "localization": {
+        "title": "Localization Settings",
+        "description": "Configure language and regional settings",
+        "defaultLanguage": "Default Language",
+        "supportedLanguages": "Supported Languages",
+        "dateFormat": "Date Format",
+        "timeFormat": "Time Format",
+        "currency": "Currency",
+        "timezone": "Timezone"
+      }
+    }
+  },
+  "booking": {
+    "title": "Book Your Stay",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "guests": "Guests",
+    "nights": "nights",
+    "totalPrice": "Total Price",
+    "bookNow": "Book Now",
+    "confirmation": "Booking Confirmation",
+    "details": "Booking Details",
+    "guestInfo": "Guest Information",
+    "paymentInfo": "Payment Information",
+    "specialRequests": "Special Requests"
+  },
+  "homestay": {
+    "details": "Homestay Details",
+    "amenities": "Amenities",
+    "reviews": "Reviews",
+    "location": "Location",
+    "host": "Host",
+    "rooms": "Rooms",
+    "availability": "Availability",
+    "policies": "Policies",
+    "description": "Description"
+  },
+  "profile": {
+    "title": "My Profile",
+    "personalInfo": "Personal Information",
+    "bookingHistory": "Booking History",
+    "preferences": "Preferences",
+    "security": "Security",
+    "notifications": "Notifications"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications yet",
+    "newBooking": "New booking received",
+    "bookingConfirmed": "Booking confirmed",
+    "reviewReceived": "New review received",
+    "paymentReceived": "Payment received",
+    "voucherReceived": "New voucher received"
+  },
+  "email": {
+    "welcome": {
+      "subject": "Welcome to {{siteName}}! 🏠",
+      "title": "Welcome, {{userName}}! 🎉",
+      "description": "Thank you for joining our homestay community. We're excited to help you discover unique places to stay and create unforgettable memories.",
+      "features": {
+        "browse": "Browse thousands of unique homestays worldwide",
+        "booking": "Easy booking and management system",
+        "reviews": "Share your experiences with reviews",
+        "connect": "Connect with local hosts"
+      },
+      "cta": "Start Exploring",
+      "footer": "If you have any questions, our support team is here to help. Just reply to this email!"
+    },
+    "booking": {
+      "subject": "🎉 Booking Confirmed - {{homestayName}}",
+      "title": "🎉 Booking Confirmed!",
+      "description": "Great news! Your booking has been confirmed. We're excited to host you!",
+      "details": {
+        "checkIn": "Check-in",
+        "checkOut": "Check-out",
+        "guests": "Guests",
+        "bookingId": "Booking ID",
+        "totalAmount": "Total Amount"
+      },
+      "hostContact": "📞 Host Contact Information",
+      "cta": {
+        "viewBooking": "View Booking Details",
+        "messageHost": "Message Host"
+      },
+      "nextSteps": {
+        "title": "What's next?",
+        "save": "Save this confirmation email for your records",
+        "contact": "Contact your host if you have any questions",
+        "instructions": "Check-in instructions will be sent 24 hours before arrival",
+        "review": "Don't forget to leave a review after your stay!"
+      }
+    }
+  },
+  "errors": {
+    "general": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "notFound": "Page not found",
+    "unauthorized": "You are not authorized to access this page",
+    "validation": "Please check your input and try again"
+  },
+  "success": {
+    "saved": "Changes saved successfully",
+    "deleted": "Item deleted successfully",
+    "sent": "Message sent successfully",
+    "updated": "Updated successfully"
+  }
+}

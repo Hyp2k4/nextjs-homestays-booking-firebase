@@ -1,0 +1,288 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "view": "Xem",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "sort": "Sắp xếp",
+    "next": "Tiếp theo",
+    "previous": "Trước đó",
+    "submit": "Gửi",
+    "reset": "Đặt lại",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "continue": "Tiếp tục",
+    "yes": "Có",
+    "no": "Không",
+    "ok": "OK",
+    "error": "Lỗi",
+    "success": "Thành công",
+    "warning": "Cảnh báo",
+    "info": "Thông tin"
+  },
+  "navigation": {
+    "home": "Trang chủ",
+    "homestays": "Homestay",
+    "about": "Giới thiệu",
+    "contact": "Liên hệ",
+    "profile": "Hồ sơ",
+    "bookings": "Đặt phòng",
+    "vouchers": "Voucher",
+    "wishlist": "Yêu thích",
+    "messages": "Tin nhắn",
+    "settings": "Cài đặt",
+    "signIn": "Đăng nhập",
+    "signUp": "Đăng ký",
+    "signOut": "Đăng xuất"
+  },
+  "header": {
+    "siteName": "Đặt Phòng Homestay",
+    "tagline": "Cổng kết nối đến những trải nghiệm homestay chân thực",
+    "searchPlaceholder": "Tìm kiếm điểm đến...",
+    "notifications": "Thông báo",
+    "userMenu": "Menu người dùng",
+    "adminPanel": "Bảng quản trị"
+  },
+  "footer": {
+    "description": "Khám phá những homestay độc đáo và tạo nên những kỷ niệm khó quên. Đặt phòng những trải nghiệm địa phương chân thực với các chủ nhà đáng tin cậy trên toàn thế giới.",
+    "company": "Công ty",
+    "support": "Hỗ trợ",
+    "hosting": "Cho thuê",
+    "legal": "Pháp lý",
+    "newsletter": {
+      "title": "Cập nhật thông tin",
+      "description": "Nhận những ưu đãi mới nhất và cảm hứng du lịch được gửi đến hộp thư của bạn.",
+      "placeholder": "Nhập email của bạn",
+      "subscribe": "Đăng ký"
+    },
+    "contact": {
+      "address": "123 Đường Du lịch, Thành phố Hồ Chí Minh, Việt Nam",
+      "phone": "+84 123 456 789",
+      "email": "hello@homestay.com"
+    },
+    "copyright": "Bảo lưu mọi quyền. Được tạo với ❤️ tại Việt Nam.",
+    "language": "Tiếng Việt",
+    "currency": "VND"
+  },
+  "auth": {
+    "login": {
+      "title": "Chào mừng trở lại",
+      "subtitle": "Đăng nhập vào tài khoản của bạn",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "rememberMe": "Ghi nhớ đăng nhập",
+      "forgotPassword": "Quên mật khẩu?",
+      "signIn": "Đăng nhập",
+      "noAccount": "Chưa có tài khoản?",
+      "signUp": "Đăng ký tại đây"
+    },
+    "register": {
+      "title": "Tạo tài khoản",
+      "subtitle": "Tham gia cộng đồng homestay của chúng tôi",
+      "name": "Họ và tên",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "confirmPassword": "Xác nhận mật khẩu",
+      "agreeTerms": "Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật",
+      "signUp": "Đăng ký",
+      "hasAccount": "Đã có tài khoản?",
+      "signIn": "Đăng nhập tại đây"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "title": "Bảng điều khiển quản trị",
+      "welcome": "Chào mừng trở lại, {{name}}!",
+      "overview": "Tổng quan hệ thống",
+      "quickActions": "Thao tác nhanh",
+      "recentActivity": "Hoạt động gần đây"
+    },
+    "analytics": {
+      "title": "Phân tích",
+      "revenue": "Doanh thu",
+      "bookings": "Đặt phòng",
+      "users": "Người dùng",
+      "properties": "Bất động sản",
+      "totalRevenue": "Tổng doanh thu",
+      "totalBookings": "Tổng đặt phòng",
+      "totalUsers": "Tổng người dùng",
+      "totalProperties": "Tổng bất động sản",
+      "thisMonth": "Tháng này",
+      "lastMonth": "Tháng trước",
+      "growth": "Tăng trưởng"
+    },
+    "users": {
+      "title": "Quản lý người dùng",
+      "totalUsers": "Tổng người dùng",
+      "activeUsers": "Người dùng hoạt động",
+      "newUsers": "Người dùng mới",
+      "userDetails": "Chi tiết người dùng",
+      "status": "Trạng thái",
+      "role": "Vai trò",
+      "joinDate": "Ngày tham gia",
+      "lastActive": "Hoạt động cuối"
+    },
+    "bookings": {
+      "title": "Quản lý đặt phòng",
+      "totalBookings": "Tổng đặt phòng",
+      "pendingBookings": "Chờ xử lý",
+      "confirmedBookings": "Đã xác nhận",
+      "completedBookings": "Hoàn thành",
+      "bookingDetails": "Chi tiết đặt phòng",
+      "guest": "Khách",
+      "host": "Chủ nhà",
+      "homestay": "Homestay",
+      "checkIn": "Nhận phòng",
+      "checkOut": "Trả phòng",
+      "amount": "Số tiền",
+      "status": "Trạng thái"
+    },
+    "settings": {
+      "title": "Cài đặt",
+      "notifications": {
+        "title": "Cài đặt thông báo",
+        "description": "Cấu hình tùy chọn thông báo email và push",
+        "emailNotifications": "Thông báo email",
+        "pushNotifications": "Thông báo push",
+        "newBookings": "Đặt phòng mới",
+        "newReviews": "Đánh giá mới",
+        "newUsers": "Người dùng mới",
+        "paymentAlerts": "Cảnh báo thanh toán",
+        "systemAlerts": "Cảnh báo hệ thống"
+      },
+      "security": {
+        "title": "Cài đặt bảo mật",
+        "description": "Cấu hình xác thực và chính sách bảo mật",
+        "authentication": "Xác thực",
+        "passwordPolicy": "Chính sách mật khẩu",
+        "apiSecurity": "Bảo mật API",
+        "emailVerification": "Xác minh email",
+        "twoFactor": "Xác thực hai yếu tố",
+        "sessionTimeout": "Hết hạn phiên",
+        "maxLoginAttempts": "Số lần đăng nhập tối đa"
+      },
+      "appearance": {
+        "title": "Cài đặt giao diện",
+        "description": "Tùy chỉnh chủ đề và thương hiệu",
+        "branding": "Thương hiệu",
+        "colors": "Màu sắc",
+        "theme": "Chủ đề",
+        "layout": "Bố cục",
+        "siteName": "Tên trang web",
+        "logo": "Logo",
+        "primaryColor": "Màu chính",
+        "secondaryColor": "Màu phụ"
+      },
+      "localization": {
+        "title": "Cài đặt bản địa hóa",
+        "description": "Cấu hình ngôn ngữ và cài đặt khu vực",
+        "defaultLanguage": "Ngôn ngữ mặc định",
+        "supportedLanguages": "Ngôn ngữ được hỗ trợ",
+        "dateFormat": "Định dạng ngày",
+        "timeFormat": "Định dạng thời gian",
+        "currency": "Tiền tệ",
+        "timezone": "Múi giờ"
+      }
+    }
+  },
+  "booking": {
+    "title": "Đặt phòng của bạn",
+    "checkIn": "Nhận phòng",
+    "checkOut": "Trả phòng",
+    "guests": "Khách",
+    "nights": "đêm",
+    "totalPrice": "Tổng giá",
+    "bookNow": "Đặt ngay",
+    "confirmation": "Xác nhận đặt phòng",
+    "details": "Chi tiết đặt phòng",
+    "guestInfo": "Thông tin khách",
+    "paymentInfo": "Thông tin thanh toán",
+    "specialRequests": "Yêu cầu đặc biệt"
+  },
+  "homestay": {
+    "details": "Chi tiết homestay",
+    "amenities": "Tiện nghi",
+    "reviews": "Đánh giá",
+    "location": "Vị trí",
+    "host": "Chủ nhà",
+    "rooms": "Phòng",
+    "availability": "Tình trạng",
+    "policies": "Chính sách",
+    "description": "Mô tả"
+  },
+  "profile": {
+    "title": "Hồ sơ của tôi",
+    "personalInfo": "Thông tin cá nhân",
+    "bookingHistory": "Lịch sử đặt phòng",
+    "preferences": "Tùy chọn",
+    "security": "Bảo mật",
+    "notifications": "Thông báo"
+  },
+  "notifications": {
+    "title": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "noNotifications": "Chưa có thông báo nào",
+    "newBooking": "Nhận được đặt phòng mới",
+    "bookingConfirmed": "Đặt phòng đã được xác nhận",
+    "reviewReceived": "Nhận được đánh giá mới",
+    "paymentReceived": "Đã nhận thanh toán",
+    "voucherReceived": "Nhận được voucher mới"
+  },
+  "email": {
+    "welcome": {
+      "subject": "Chào mừng đến với {{siteName}}! 🏠",
+      "title": "Chào mừng, {{userName}}! 🎉",
+      "description": "Cảm ơn bạn đã tham gia cộng đồng homestay của chúng tôi. Chúng tôi rất vui được giúp bạn khám phá những nơi ở độc đáo và tạo nên những kỷ niệm khó quên.",
+      "features": {
+        "browse": "Duyệt hàng nghìn homestay độc đáo trên toàn thế giới",
+        "booking": "Hệ thống đặt phòng và quản lý dễ dàng",
+        "reviews": "Chia sẻ trải nghiệm của bạn qua đánh giá",
+        "connect": "Kết nối với các chủ nhà địa phương"
+      },
+      "cta": "Bắt đầu khám phá",
+      "footer": "Nếu bạn có bất kỳ câu hỏi nào, đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ. Chỉ cần trả lời email này!"
+    },
+    "booking": {
+      "subject": "🎉 Đặt phòng đã được xác nhận - {{homestayName}}",
+      "title": "🎉 Đặt phòng đã được xác nhận!",
+      "description": "Tin tuyệt vời! Đặt phòng của bạn đã được xác nhận. Chúng tôi rất vui được đón tiếp bạn!",
+      "details": {
+        "checkIn": "Nhận phòng",
+        "checkOut": "Trả phòng",
+        "guests": "Khách",
+        "bookingId": "Mã đặt phòng",
+        "totalAmount": "Tổng tiền"
+      },
+      "hostContact": "📞 Thông tin liên hệ chủ nhà",
+      "cta": {
+        "viewBooking": "Xem chi tiết đặt phòng",
+        "messageHost": "Nhắn tin cho chủ nhà"
+      },
+      "nextSteps": {
+        "title": "Bước tiếp theo?",
+        "save": "Lưu email xác nhận này để làm hồ sơ",
+        "contact": "Liên hệ chủ nhà nếu bạn có bất kỳ câu hỏi nào",
+        "instructions": "Hướng dẫn nhận phòng sẽ được gửi 24 giờ trước khi đến",
+        "review": "Đừng quên để lại đánh giá sau khi lưu trú!"
+      }
+    }
+  },
+  "errors": {
+    "general": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "network": "Lỗi mạng. Vui lòng kiểm tra kết nối của bạn.",
+    "notFound": "Không tìm thấy trang",
+    "unauthorized": "Bạn không có quyền truy cập trang này",
+    "validation": "Vui lòng kiểm tra thông tin nhập và thử lại"
+  },
+  "success": {
+    "saved": "Đã lưu thay đổi thành công",
+    "deleted": "Đã xóa thành công",
+    "sent": "Đã gửi tin nhắn thành công",
+    "updated": "Đã cập nhật thành công"
+  }
+}

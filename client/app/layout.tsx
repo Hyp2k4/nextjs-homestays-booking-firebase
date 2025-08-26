@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Montserrat, Playfair_Display } from "next/font/google"
 import { Open_Sans } from "next/font/google"
-import "./globals.css"
+import "../styles/globals.css"
 import "leaflet/dist/leaflet.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { PromoProvider } from "@/contexts/promo-context"

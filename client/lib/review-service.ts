@@ -17,6 +17,7 @@ import {
   orderBy,
 } from "firebase/firestore"
 import type { Review, Reply } from "@/types/review"
+import { NotificationService } from "@/lib/notification-service"
 
 export const ReviewService = {
   async addReview(review: Omit<Review, "id" | "createdAt">): Promise<string> {
@@ -89,6 +90,26 @@ export const ReviewService = {
     await updateDoc(reviewRef, {
       replies: arrayUnion(newReply),
     })
+
+    // Get review details to send notification
+    try {
+      const reviewDoc = await getDoc(reviewRef)
+      if (reviewDoc.exists()) {
+        const reviewData = reviewDoc.data() as Review
+        // Notify the review author that they received a reply
+        if (reviewData.userId) {
+          await NotificationService.notifyReviewReply(
+            reviewData.userId,
+            reviewId,
+            "their homestay", // Could be enhanced to get actual homestay name
+            replyData.userName
+          )
+        }
+      }
+    } catch (error) {
+      console.error("Error sending reply notification:", error)
+      // Don't throw - reply was successful, notification is optional
+    }
   },
 
   async toggleReviewLike(reviewId: string, userId: string): Promise<void> {
